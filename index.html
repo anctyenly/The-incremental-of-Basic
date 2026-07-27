@@ -1,0 +1,3404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incremental Game</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: sans-serif;
+  background: #111;
+  color: #eee;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  padding-top: 20px;
+}
+.points-label {
+  font-size: 11px;
+  color: #888;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.points {
+  font-size: 32px;
+  font-weight: bold;
+}
+.pps {
+  font-size: 13px;
+  color: #666;
+  margin-top: 6px;
+}
+.upgrade {
+  margin-top: 24px;
+  width: 120px;
+  height: 120px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s;
+}
+.upgrade:hover { border-color: #666; }
+.upgrade.can-buy { border-color: #4a4; }
+.upgrade.can-buy:hover { border-color: #6c6; }
+.upgrade-title {
+  font-size: 11px;
+  color: #aaa;
+  margin-bottom: 6px;
+}
+.upgrade-mult {
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.upgrade-cost {
+  font-size: 12px;
+  color: #888;
+}
+.upgrade-count {
+  font-size: 10px;
+  color: #555;
+  margin-top: 4px;
+}
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 16px;
+}
+.tab {
+  padding: 6px 20px;
+  font-size: 12px;
+  color: #666;
+  background: none;
+  border: 1px solid #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.tab:hover { color: #aaa; }
+.tab.active {
+  color: #eee;
+  background: #222;
+  border-color: #555;
+}
+.tab[data-tab="prestige"] {
+  color: #4a7ab5;
+  border-color: #2a4a6a;
+}
+.tab[data-tab="prestige"]:hover {
+  color: #6ab0f0;
+  border-color: #3a6a9a;
+}
+.tab[data-tab="prestige"].active {
+  color: #6ab0f0;
+  background: #1a2a3a;
+  border-color: #3a6a9a;
+}
+.page { display: none; }
+.page.active { display: flex; flex-direction: column; align-items: center; }
+.settings-text {
+  margin-top: 24px;
+  font-size: 13px;
+  color: #555;
+}
+.dev-btn {
+  margin-top: 20px;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: #555;
+  background: none;
+  border: 1px solid #282828;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+  transition: color 0.15s, border-color 0.15s;
+}
+.dev-btn:hover { color: #777; border-color: #444; }
+.dev-panel {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 16px;
+  padding: 16px;
+  background: #1a1a1a;
+  border: 1px solid #a33;
+  border-radius: 6px;
+  width: 220px;
+}
+.dev-panel.open { display: flex; }
+.dev-panel-title {
+  font-size: 11px;
+  color: #a33;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+.dev-row {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 100%;
+}
+.dev-row label {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.dev-row input {
+  width: 100%;
+  padding: 5px 8px;
+  font-size: 13px;
+  font-family: sans-serif;
+  background: #111;
+  border: 1px solid #333;
+  border-radius: 4px;
+  color: #eee;
+  text-align: center;
+  outline: none;
+}
+.dev-row input:focus { border-color: #a33; }
+.dev-apply {
+  padding: 5px 16px;
+  font-size: 11px;
+  color: #eee;
+  background: #a33;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+.dev-apply:hover { background: #c44; }
+.hard-reset-btn {
+  margin-top: 20px;
+  padding: 6px 16px;
+  font-size: 11px;
+  color: #663333;
+  background: none;
+  border: 1px solid #3a1a1a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+  transition: all 0.15s;
+}
+.hard-reset-btn:hover {
+  color: #cc4444;
+  border-color: #aa3333;
+  background: #aa333312;
+}
+.save-btn {
+  padding: 5px 14px;
+  font-size: 11px;
+  color: #6ab0f0;
+  background: #1a2a3a;
+  border: 1px solid #2a4a6a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+  transition: all 0.15s;
+}
+.save-btn:hover {
+  background: #1e3348;
+  border-color: #3a6a9a;
+}
+.fps-box {
+  margin-top: 20px;
+  padding: 12px 20px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 200px;
+}
+.fps-label {
+  font-size: 10px;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.fps-value {
+  font-size: 14px;
+  font-weight: bold;
+  color: #eee;
+}
+.fps-slider {
+  width: 100%;
+  accent-color: #888;
+}
+.points-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  position: relative;
+}
+.prestige-box {
+  display: none;
+  position: absolute;
+  left: 20px;
+  top: 8px;
+  width: auto;
+  height: auto;
+  background: #1a2a3a;
+  border: 1px solid #3a6a9a;
+  border-radius: 4px;
+  font-size: 8px;
+  color: #6ab0f0;
+  cursor: pointer;
+  white-space: normal;
+  transition: background 0.15s, border-color 0.15s;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.3;
+  padding: 1px 6px;
+}
+.prestige-box.visible { display: flex; }
+.prestige-box.faded { opacity: 0.35; }
+.prestige-box:hover {
+  background: #1e3348;
+  border-color: #5a9ade;
+}
+.pp-display {
+  font-size: 8px;
+  color: #6ab0f0;
+  position: absolute;
+  left: 20px;
+  bottom: 100%;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+.infinity-box {
+  display: none;
+  position: absolute;
+  right: 20px;
+  top: 8px;
+  width: auto;
+  height: auto;
+  background: #2a1a0a;
+  border: 1px solid #8a4a0a;
+  border-radius: 4px;
+  font-size: 8px;
+  color: #e67e22;
+  cursor: pointer;
+  white-space: normal;
+  transition: background 0.15s, border-color 0.15s;
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  line-height: 1.3;
+  padding: 1px 6px;
+}
+.infinity-box.visible { display: flex; }
+.infinity-box.faded { opacity: 0.35; }
+.infinity-box:hover {
+  background: #3a2a1a;
+  border-color: #b06a2a;
+}
+.ip-display {
+  font-size: 8px;
+  color: #e67e22;
+  position: absolute;
+  right: 20px;
+  bottom: 100%;
+  margin-bottom: 4px;
+  white-space: nowrap;
+}
+.prestige-upgrade {
+  width: 120px;
+  min-height: 80px;
+  background: #1a2a3a;
+  border: 1px solid #2a4a6a;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+  padding: 6px 4px;
+}
+.prestige-upgrade:hover { border-color: #3a6a9a; background: #1e3348; }
+.prestige-upgrade.can-buy { border-color: #4a8abf; }
+.prestige-upgrade.bought { border-color: #3a6a3a; background: #1a2a1a; opacity: 0.6; cursor: default; }
+.infinity-upgrade {
+  width: 130px;
+  min-height: 80px;
+  background: #2a1a0a;
+  border: 1px solid #6a3a0a;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+  padding: 6px 4px;
+}
+.infinity-upgrade:hover { border-color: #b06a2a; background: #3a2a10; }
+.infinity-upgrade.can-buy { border-color: #e67e22; }
+.infinity-upgrade.bought { border-color: #3a6a3a; background: #1a2a1a; opacity: 0.6; cursor: default; }
+
+  font-size: 20px;
+  font-weight: bold;
+  color: #6ab0f0;
+  margin-top: 20px;
+}
+.prestige-page-pp-label {
+  font-size: 11px;
+  color: #888;
+  margin-top: 4px;
+}
+.prestige-page-boost {
+  font-size: 13px;
+  color: #555;
+  margin-top: 8px;
+}
+.stat-box {
+  margin-top: 16px;
+  padding: 14px 20px;
+  border-radius: 6px;
+  width: 260px;
+  font-size: 12px;
+  line-height: 2;
+}
+.stat-box.normal {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  color: #ccc;
+}
+.stat-box.normal .stat-title {
+  color: #eee;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.stat-box.prestige-stat {
+  background: #1a2a3a;
+  border: 1px solid #2a4a6a;
+  color: #8ac0e8;
+}
+.stat-box.prestige-stat .stat-title {
+  color: #6ab0f0;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+}
+.stat-label { color: #888; }
+.stat-box.prestige-stat .stat-label { color: #5a8ab0; }
+.prestige-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+.prestige-subtab {
+  padding: 5px 16px;
+  font-size: 11px;
+  color: #4a7ab5;
+  background: none;
+  border: 1px solid #2a4a6a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.prestige-subtab:hover { color: #6ab0f0; border-color: #3a6a9a; }
+.prestige-subtab.active {
+  color: #6ab0f0;
+  background: #1a2a3a;
+  border-color: #3a6a9a;
+}
+.prestige-subpage { display: none; width: 100%; }
+.prestige-subpage.active { display: flex; flex-direction: column; align-items: center; }
+.infinity-subtabs {
+  display: flex;
+  gap: 4px;
+  margin-top: 12px;
+}
+.infinity-subtab {
+  padding: 5px 16px;
+  font-size: 11px;
+  color: #e67e22;
+  background: none;
+  border: 1px solid #8a4a0a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.infinity-subtab:hover { color: #f0a050; border-color: #b06a2a; }
+.infinity-subtab.active {
+  color: #f0a050;
+  background: #2a1a0a;
+  border-color: #b06a2a;
+}
+.infinity-subtab[data-isub="breakinf"] {
+  color: #e74c3c;
+  border-color: #8a1a0a;
+}
+.infinity-subtab[data-isub="breakinf"]:hover {
+  color: #f07050;
+  border-color: #b03a2a;
+}
+.infinity-subtab[data-isub="breakinf"].active {
+  color: #f07050;
+  background: #2a0a0a;
+  border-color: #b03a2a;
+}
+.infinity-subpage { display: none; width: 100%; }
+.infinity-subpage.active { display: flex; flex-direction: column; align-items: center; }
+.challenge-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 16px;
+  width: 66.6%;
+}
+.challenge-card {
+  width: 100%;
+  aspect-ratio: 1;
+  background: #1a2a3a;
+  border: 1px solid #2a4a6a;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s, background 0.15s;
+}
+.challenge-card:hover { border-color: #3a6a9a; background: #1e3348; }
+.challenge-card.completed { border-color: #3a6a3a; }
+.challenge-card.in-challenge { border-color: #b0a040; background: #2a2a1a; }
+.challenge-card .ch-num {
+  font-size: 16px;
+  font-weight: bold;
+  color: #6ab0f0;
+}
+.challenge-card.completed .ch-num { color: #6ac06a; }
+.challenge-card.in-challenge .ch-num { color: #d0c060; }
+.challenge-card .ch-label {
+  font-size: 8px;
+  color: #5a8ab0;
+  margin-top: 2px;
+}
+.challenge-enter-btn {
+  margin-top: 16px;
+  padding: 8px 40px;
+  font-size: 12px;
+  color: #6ab0f0;
+  background: #1a2a3a;
+  border: 1px solid #3a6a9a;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: sans-serif;
+  transition: all 0.15s;
+}
+.challenge-enter-btn:hover { background: #1e3348; border-color: #5a9ade; }
+.challenge-enter-btn.exit { color: #d0c060; border-color: #8a7a30; background: #2a2a1a; }
+.challenge-enter-btn.exit:hover { border-color: #b0a040; background: #3a3a2a; }
+.challenge-info {
+  margin-top: 12px;
+  font-size: 11px;
+  color: #5a8ab0;
+  text-align: center;
+  line-height: 1.6;
+}
+.challenge-info .ch-title {
+  font-size: 13px;
+  font-weight: bold;
+  color: #6ab0f0;
+  margin-bottom: 4px;
+}
+.setting-row {
+  margin-top: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  color: #aaa;
+}
+.setting-toggle {
+  width: 36px;
+  height: 20px;
+  background: #333;
+  border-radius: 10px;
+  position: relative;
+  cursor: pointer;
+  transition: background 0.15s;
+  flex-shrink: 0;
+}
+.setting-toggle.on { background: #4a7ab5; }
+.setting-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #eee;
+  border-radius: 50%;
+  transition: left 0.15s;
+}
+.setting-toggle.on::after { left: 18px; }
+.auto-section {
+  margin-top: 16px;
+}
+.auto-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #ddd;
+  margin-bottom: 14px;
+  letter-spacing: 1px;
+}
+.auto-item {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin-bottom: 10px;
+  transition: border-color 0.2s;
+}
+.auto-item.active {
+  border-color: rgba(100,180,120,0.4);
+  background: rgba(100,180,120,0.06);
+}
+.auto-item.locked {
+  opacity: 0.35;
+}
+.auto-item-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.auto-item-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: #ccc;
+}
+.auto-item-rate {
+  font-size: 12px;
+  color: #6cb87a;
+  font-weight: 600;
+}
+.auto-item-desc {
+  font-size: 11px;
+  color: #888;
+  margin-top: 6px;
+}
+.auto-item-source {
+  font-size: 10px;
+  color: #666;
+  margin-top: 4px;
+  font-style: italic;
+}
+.auto-item-detail {
+  font-size: 10px;
+  color: #7a9a7a;
+  margin-top: 4px;
+}
+.auto-upgrade-btn {
+  margin-top: 10px;
+  padding: 7px 12px;
+  background: rgba(74,122,181,0.12);
+  border: 1px solid rgba(74,122,181,0.3);
+  border-radius: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.auto-upgrade-btn:hover {
+  background: rgba(74,122,181,0.2);
+  border-color: rgba(74,122,181,0.5);
+}
+.auto-upgrade-btn.can-buy {
+  border-color: rgba(106,176,240,0.5);
+  background: rgba(106,176,240,0.1);
+}
+.auto-upgrade-btn.can-buy:hover {
+  background: rgba(106,176,240,0.18);
+}
+.auto-upgrade-label {
+  font-size: 11px;
+  color: #8ab0d0;
+}
+.auto-upgrade-cost {
+  font-size: 11px;
+  color: #6ab0f0;
+  font-weight: 600;
+}
+.help-box {
+  margin-top: 16px;
+  padding: 14px 20px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 6px;
+  width: 280px;
+  font-size: 12px;
+  line-height: 2;
+  color: #aaa;
+}
+.help-box .help-title {
+  color: #eee;
+  font-size: 13px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+.help-box .help-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.help-box .help-label { color: #888; }
+.help-box .help-value { color: #ccc; text-align: right; }
+.help-box .help-value.prestige-color { color: #6ab0f0; }
+.help-box .help-value.challenge-color { color: #d0c060; }
+.help-sep {
+  border: none;
+  border-top: 1px solid #282828;
+  margin: 8px 0;
+}
+.help-formula {
+  background: #111820;
+  border: 1px solid #1a2a3a;
+  border-radius: 4px;
+  padding: 6px 10px;
+  margin: 4px 0 8px;
+  font-size: 10px;
+  color: #8ac0e8;
+  line-height: 1.7;
+  font-family: monospace;
+  overflow-x: auto;
+}
+.help-formula .c { color: #445566; }
+.help-section-title {
+  font-size: 11px;
+  color: #4a8abf;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  margin-bottom: 4px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid #1a2a3a;
+}
+.help-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+  margin: 4px 0 8px;
+}
+.help-table th {
+  text-align: left;
+  color: #6ab0f0;
+  padding: 3px 6px;
+  border-bottom: 1px solid #2a4a6a;
+  font-weight: normal;
+}
+.help-table td {
+  padding: 2px 6px;
+  color: #999;
+  border-bottom: 1px solid #161c24;
+}
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.6);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #1a1a1a;
+  border: 1px solid #444;
+  border-radius: 8px;
+  padding: 20px 24px;
+  max-width: 280px;
+  text-align: center;
+}
+.modal-box.danger { border-color: #a33; }
+.modal-msg {
+  font-size: 12px;
+  color: #ccc;
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+.modal-btns {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+.modal-btn {
+  padding: 6px 20px;
+  font-size: 11px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: sans-serif;
+  border: 1px solid #444;
+  background: #222;
+  color: #aaa;
+  transition: all 0.15s;
+}
+.modal-btn:hover { background: #2a2a2a; border-color: #666; color: #eee; }
+.modal-btn.yes { background: #1a2a3a; border-color: #3a6a9a; color: #6ab0f0; }
+.modal-btn.yes:hover { background: #1e3348; border-color: #5a9ade; }
+.modal-btn.danger { background: #2a1a1a; border-color: #a33; color: #c44; }
+.modal-btn.danger:hover { background: #3a1a1a; border-color: #c44; }
+/* progress bars */
+.progress-bars {
+  width: 90%;
+  max-width: 360px;
+  margin: 6px auto 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.progress-bar-row {
+  position: relative;
+  height: 16px;
+  background: #161c24;
+  border: 1px solid #2a3a4a;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.progress-bar-row.hidden { display: none; }
+.progress-bar-fill {
+  height: 100%;
+  transition: width 0.5s ease;
+  min-width: 2px;
+  border-radius: 2px;
+}
+.progress-bar-row:nth-child(1) .progress-bar-fill { background: linear-gradient(90deg, #1a3a2a, #2a8a4a, #4ad070); }
+.progress-bar-row:nth-child(2) .progress-bar-fill { background: linear-gradient(90deg, #3a2a1a, #8a6a2a, #d0a04a); }
+.progress-bar-row:nth-child(3) .progress-bar-fill { background: linear-gradient(90deg, #1a1a3a, #2a4a8a, #4a70d0); }
+.progress-bar-label {
+  position: absolute;
+  width: 100%;
+  text-align: center;
+  font-size: 9px;
+  color: #cce;
+  letter-spacing: 0.5px;
+  pointer-events: none;
+  line-height: 16px;
+  text-shadow: 0 0 6px #000, 0 0 3px #000;
+  top: 0;
+  left: 0;
+}
+#bigCrunchOverlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: #e67e22;
+  z-index: 99999;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-direction: column;
+}
+#bigCrunchOverlay.visible {
+  display: flex;
+  animation: crunchPulse 2s ease-in-out infinite;
+}
+#bigCrunchOverlay .crunch-text {
+  font-size: 64px;
+  font-weight: bold;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 6px;
+  text-shadow: 0 0 20px rgba(0,0,0,0.3);
+}
+#bigCrunchOverlay .crunch-sub {
+  font-size: 16px;
+  color: rgba(255,255,255,0.7);
+  margin-top: 16px;
+}
+@keyframes crunchPulse {
+  0%, 100% { background: #e67e22; }
+  50% { background: #d35400; }
+}
+.tab[data-tab="infinity"] {
+  color: #e67e22;
+  border-color: #8a4a0a;
+}
+.tab[data-tab="infinity"]:hover {
+  color: #f0a050;
+  border-color: #b06a2a;
+}
+.tab[data-tab="infinity"].active {
+  color: #f0a050;
+  background: #2a1a0a;
+  border-color: #b06a2a;
+}
+.stat-box.infinity-stat {
+  background: #2a1a0a;
+  border: 1px solid #8a4a0a;
+}
+.stat-box.infinity-stat .stat-title {
+  color: #e67e22;
+}
+.stat-box.infinity-stat .stat-label { color: #b06a2a; }
+</style>
+</head>
+<body>
+<div class="points-label">Points</div>
+<div class="points-row">
+  <div class="pp-display" id="ppDisplay"></div>
+  <div class="prestige-box" id="prestigeBox"></div>
+  <div class="points" id="pts">0</div>
+  <div class="ip-display" id="ipDisplayMain"></div>
+  <div class="infinity-box" id="infinityBox"></div>
+</div>
+<div class="pps" id="pps">+1.0/s</div>
+<div class="progress-bars" id="progressBars">
+  <div class="progress-bar-row" id="progRow1">
+    <div class="progress-bar-label" id="progLabel1"></div>
+    <div class="progress-bar-fill" id="progFill1" style="width:0%"></div>
+  </div>
+  <div class="progress-bar-row" id="progRow2">
+    <div class="progress-bar-label" id="progLabel2"></div>
+    <div class="progress-bar-fill" id="progFill2" style="width:0%"></div>
+  </div>
+  <div class="progress-bar-row hidden" id="progRow3">
+    <div class="progress-bar-label" id="progLabel3"></div>
+    <div class="progress-bar-fill" id="progFill3" style="width:0%"></div>
+  </div>
+</div>
+<div class="tabs">
+  <button class="tab active" data-tab="main">Main</button>
+  <button class="tab" data-tab="stat">Stat</button>
+  <button class="tab" data-tab="prestige" id="prestigeTab" style="display:none">Prestige</button>
+  <button class="tab" data-tab="automation" id="automationTab" style="display:none">Automation</button>
+  <button class="tab" data-tab="infinity" id="infinityTab" style="display:none">Infinity</button>
+  <button class="tab" data-tab="help">Help</button>
+  <button class="tab" data-tab="settings">Settings</button>
+</div>
+<div class="page active" id="page-main">
+  <div class="scaling-info" id="scalingInfo" style="display:none;font-size:11px;color:#a66;margin-top:16px;margin-bottom:-8px;">Scaling active</div>
+  <div class="upgrade" id="upg">
+    <div class="upgrade-title">Multiplier</div>
+    <div class="upgrade-mult" id="upgMult">1.2x</div>
+    <div class="upgrade-cost" id="upgCost">Cost: 1</div>
+    <div class="upgrade-count" id="upgCount">Bought: 0</div>
+  </div>
+</div>
+<div class="page" id="page-stat">
+  <div class="stat-box normal">
+    <div class="stat-title">Normal</div>
+    <div class="stat-row"><span class="stat-label">Points</span><span id="statPoints">0</span></div>
+    <div class="stat-row"><span class="stat-label">This run total</span><span id="statRunTotal">0</span></div>
+    <div class="stat-row"><span class="stat-label">Total playtime</span><span id="statPlaytime">0:00:00</span></div>
+    <div class="stat-row"><span class="stat-label">This run time</span><span id="statRunTime">0:00:00</span></div>
+  </div>
+  <div class="stat-box prestige-stat">
+    <div class="stat-title">Prestige</div>
+    <div class="stat-row"><span class="stat-label">Current pp</span><span id="statPP">0</span></div>
+    <div class="stat-row"><span class="stat-label">Total pp</span><span id="statTotalPP">0</span></div>
+    <div class="stat-row"><span class="stat-label">Best pp/min</span><span id="statBestPPM">0</span></div>
+    <div class="stat-row"><span class="stat-label">Prestige resets</span><span id="statPrestigeCount">0</span></div>
+  </div>
+  <div class="stat-box infinity-stat" id="statInfinityBox" style="display:none;">
+    <div class="stat-title">Infinity</div>
+    <div class="stat-row"><span class="stat-label">Infinity Points</span><span id="statIP2">0</span></div>
+    <div class="stat-row"><span class="stat-label">Infinity resets</span><span id="statInfResets2">0</span></div>
+    <div class="stat-row"><span class="stat-label">This infinity</span><span id="statInfTime2">0:00:00</span></div>
+    <div class="stat-row"><span class="stat-label">Best infinity time</span><span id="statBestInfTime2">-</span></div>
+    <div class="stat-row"><span class="stat-label">Best IP/min</span><span id="statBestIPM2">0</span></div>
+  </div>
+</div>
+<div class="page" id="page-prestige">
+  <div class="prestige-page-pp" id="prestigePagePP">0</div>
+  <div class="prestige-page-pp-label">prestige points</div>
+  <div class="prestige-page-boost" id="prestigePageBoost">point multiplier: x1</div>
+  <div id="ppExpInfo" style="font-size:11px;color:#888;margin-top:4px;"></div>
+  <div class="prestige-subtabs">
+    <button class="prestige-subtab active" data-psub="upgrades">Upgrades</button>
+    <button class="prestige-subtab" data-psub="challenge" id="challengeSubTab" style="display:none">Challenge</button>
+  </div>
+  <div class="prestige-subpage active" id="psub-upgrades">
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <div class="prestige-upgrade" id="pUpg1">
+        <div style="font-size:11px;color:#6ab0f0;">point*ln(point)^0.5</div>
+        <div style="font-size:10px;color:#888;margin-top:4px;">Cost: 1 pp</div>
+        <div id="pUpg1Eff" style="font-size:9px;color:#5a8a5a;margin-top:3px;"></div>
+      </div>
+      <div class="prestige-upgrade" id="pUpg2">
+        <div style="font-size:11px;color:#6ab0f0;">point*ln(playtime)^0.3</div>
+        <div style="font-size:10px;color:#888;margin-top:4px;">Cost: 2 pp</div>
+        <div id="pUpg2Eff" style="font-size:9px;color:#5a8a5a;margin-top:3px;"></div>
+      </div>
+      <div class="prestige-upgrade" id="pUpg3">
+        <div style="font-size:11px;color:#6ab0f0;">pp*ln(point)^0.1</div>
+        <div style="font-size:10px;color:#888;margin-top:4px;">Cost: 5 pp</div>
+        <div id="pUpg3Eff" style="font-size:9px;color:#5a8a5a;margin-top:3px;"></div>
+      </div>
+    </div>
+    <div id="pUpg4Row" style="display:none;gap:8px;margin-top:8px;">
+      <div class="prestige-upgrade" id="pUpg4">
+        <div style="font-size:11px;color:#6ab0f0;">mult power +log10(prestiges)/100</div>
+        <div style="font-size:10px;color:#888;margin-top:4px;">Cost: 1e8 pp</div>
+        <div id="pUpg4Eff" style="font-size:9px;color:#5a8a5a;margin-top:3px;"></div>
+      </div>
+      <div class="prestige-upgrade" id="pUpg5">
+        <div style="font-size:11px;color:#6ab0f0;">pp exp +log10(pp)/1500</div>
+        <div style="font-size:10px;color:#888;margin-top:4px;">Cost: 1e14 pp</div>
+        <div id="pUpg5Eff" style="font-size:9px;color:#5a8a5a;margin-top:3px;"></div>
+      </div>
+      <div class="prestige-upgrade" id="pUpg6">
+        <div style="font-size:11px;color:#6ab0f0;">challenge power &amp; auto prestige</div>
+        <div style="font-size:10px;color:#888;margin-top:4px;">Cost: 1e20 pp</div>
+        <div id="pUpg6Eff" style="font-size:9px;color:#5a8a5a;margin-top:3px;"></div>
+      </div>
+    </div>
+  </div>
+  <div class="prestige-subpage" id="psub-challenge">
+    <div class="challenge-info" id="challengeInfo">
+      <div class="ch-title">Prestige Challenges</div>
+      Select a challenge to view details
+    </div>
+    <div class="challenge-grid" id="challengeGrid"></div>
+    <button class="challenge-enter-btn" id="challengeBtn" style="display:none">Enter Challenge</button>
+  </div>
+</div>
+<div class="page" id="page-automation">
+  <div class="auto-section">
+    <div class="auto-title">Automation</div>
+    <div class="auto-item active" id="autoUpgrade">
+      <div class="auto-item-header">
+        <span class="auto-item-name">Autobuy Multiplier</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="auto-item-rate" id="autobuyRate">1.00/s</span>
+          <div class="setting-toggle on" id="autobuyToggle" title="Toggle autobuy"></div>
+        </div>
+      </div>
+      <div class="auto-item-desc">Automatically purchases multiplier upgrades.</div>
+      <div class="auto-item-detail" id="autobuyDetail">Interval: 1.000s</div>
+      <div class="auto-upgrade-btn" id="autobuyUpgBtn">
+        <span class="auto-upgrade-label">Upgrade Speed</span>
+        <span class="auto-upgrade-cost" id="autobuyCost">1 pp</span>
+      </div>
+    </div>
+    <div class="auto-item" id="autoMultiBuy" style="display:none;">
+      <div class="auto-item-header">
+        <span class="auto-item-name">Auto Multi-Buy</span>
+        <span class="auto-item-rate" id="autoMultiBuyRate">x1</span>
+      </div>
+      <div class="auto-item-desc">Autobuy purchases multiple upgrades per tick.</div>
+      <div class="auto-item-detail" id="autoMultiBuyDetail">Buys 1 per tick</div>
+      <div class="auto-upgrade-btn" id="autoMultiBuyUpgBtn">
+        <span class="auto-upgrade-label">Upgrade Amount</span>
+        <span class="auto-upgrade-cost" id="autoMultiBuyCost">1.00e50 pp</span>
+      </div>
+    </div>
+    <div class="auto-item" id="autoPrestige" style="display:none;">
+      <div class="auto-item-header">
+        <span class="auto-item-name">Auto Prestige</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="auto-item-rate" id="autoPrestigeRate">Off</span>
+          <div class="setting-toggle" id="autoPrestigeToggle" title="Toggle auto prestige"></div>
+        </div>
+      </div>
+      <div class="auto-item-desc">Automatically prestiges when PP gain &ge; 1.</div>
+      <div class="auto-item-source">Unlocked by Prestige Upgrade 6</div>
+    </div>
+    <div class="auto-item" id="autoInfinity" style="display:none;">
+      <div class="auto-item-header">
+        <span class="auto-item-name">Auto Infinity</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="auto-item-rate" id="autoInfinityRate">Off</span>
+          <div class="setting-toggle" id="autoInfinityToggle" title="Toggle auto infinity"></div>
+        </div>
+      </div>
+      <div class="auto-item-desc" id="autoInfinityDesc">Automatically crunches when points reach 1.80e308.</div>
+      <div class="auto-item-source">Unlocked by Infinity Upgrade 16</div>
+      <div style="margin-top:8px;display:flex;align-items:center;gap:10px;">
+        <button class="upgrade can-buy" id="autoInfUpgBtn" style="padding:4px 12px;font-size:11px;">Upgrade</button>
+        <span style="font-size:11px;color:#888;" id="autoInfUpgInfo">Interval: 150s | Cost: 1 IP</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-infinity">
+  <div style="font-size:48px;font-weight:bold;color:#e67e22;margin-top:20px;" id="ipDisplay">0</div>
+  <div style="font-size:11px;color:#b06a2a;margin-top:4px;text-transform:uppercase;letter-spacing:2px;">infinity points</div>
+  <div class="infinity-subtabs">
+    <button class="infinity-subtab active" data-isub="upgrades">Upgrades</button>
+    <button class="infinity-subtab" data-isub="breakinf" id="breakInfSubTab" style="display:none">Break Infinity</button>
+  </div>
+  <div class="infinity-subpage active" id="isub-upgrades">
+  <div style="margin-top:16px;font-size:12px;color:#b06a2a;" id="ipPointBoost"></div>
+  <div style="margin-top:4px;font-size:12px;color:#8a6a3a;" id="ipPPBoost"></div>
+  <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;justify-content:center;">
+    <div class="infinity-upgrade" id="iUpg1">
+      <div style="font-size:10px;color:#e67e22;">point*log10(played sec)</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 1 IP</div>
+      <div id="iUpg1Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg2">
+      <div style="font-size:10px;color:#e67e22;">mult base +0.015</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 1 IP</div>
+      <div id="iUpg2Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg3">
+      <div style="font-size:10px;color:#e67e22;">point*log2(total IP)</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 2 IP</div>
+      <div id="iUpg3Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg4">
+      <div style="font-size:10px;color:#e67e22;">passive 25% best IP/min</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 3 IP</div>
+      <div id="iUpg4Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
+    <div class="infinity-upgrade" id="iUpg5">
+      <div style="font-size:10px;color:#e67e22;">pp * ln(IP)</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 1 IP</div>
+      <div id="iUpg5Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg6">
+      <div style="font-size:10px;color:#e67e22;">pp formula power +0.03</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 1 IP</div>
+      <div id="iUpg6Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg7">
+      <div style="font-size:10px;color:#e67e22;">pp * log2(log2(sec)^5)</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 3 IP</div>
+      <div id="iUpg7Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg8">
+      <div style="font-size:10px;color:#e67e22;">autobuy 2x faster & 2x more</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 5 IP</div>
+      <div id="iUpg8Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
+    <div class="infinity-upgrade" id="iUpg9">
+      <div style="font-size:10px;color:#e67e22;">PC1 reward *1.1</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">keep PC1 on infinity</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 3 IP</div>
+      <div id="iUpg9Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg10">
+      <div style="font-size:10px;color:#e67e22;">PC2 reward *1.1</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">keep PC2 + max autobuy on infinity</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 5 IP</div>
+      <div id="iUpg10Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg11">
+      <div style="font-size:10px;color:#e67e22;">PC3 reward *1.1</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">keep PC3 on infinity</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 7 IP</div>
+      <div id="iUpg11Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg12">
+      <div style="font-size:10px;color:#e67e22;">PC4 reward *1.1</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">keep PC4 on infinity</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 10 IP</div>
+      <div id="iUpg12Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;justify-content:center;">
+    <div class="infinity-upgrade" id="iUpg13">
+      <div style="font-size:10px;color:#e67e22;">start with 100 pts</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">on prestige & infinity</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 15 IP</div>
+      <div id="iUpg13Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg14">
+      <div style="font-size:10px;color:#e67e22;">start with 1000 pts</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">on prestige & infinity</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 30 IP</div>
+      <div id="iUpg14Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg15">
+      <div style="font-size:10px;color:#e67e22;">start with 5000 pts</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">+ PU1-3 on reset</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 60 IP</div>
+      <div id="iUpg15Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+    <div class="infinity-upgrade" id="iUpg16">
+      <div style="font-size:10px;color:#e67e22;">start 9999 pts + all PU</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">IP mult upgrade, auto inf</div>
+      <div style="font-size:9px;color:#888;margin-top:2px;">Cost: 150 IP</div>
+      <div id="iUpg16Eff" style="font-size:9px;color:#8a6a3a;margin-top:3px;"></div>
+    </div>
+  </div>
+  <div id="ipMultSection" style="display:none;margin-top:16px;text-align:center;">
+    <div style="font-size:11px;color:#b06a2a;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;">IP Multiplier</div>
+    <div class="infinity-upgrade" id="ipMultUpg" style="width:160px;margin:0 auto;">
+      <div style="font-size:12px;color:#e67e22;font-weight:bold;" id="ipMultDisplay">x1 IP</div>
+      <div style="font-size:9px;color:#888;margin-top:4px;" id="ipMultCost">Cost: 1 IP</div>
+      <div style="font-size:9px;color:#8a6a3a;margin-top:3px;" id="ipMultNext">Next: x2 IP</div>
+    </div>
+  </div>
+  </div>
+  <div class="infinity-subpage" id="isub-breakinf">
+    <div style="font-size:36px;font-weight:bold;color:#e74c3c;margin-top:20px;">BREAK INFINITY</div>
+    <div style="font-size:11px;color:#b03a2a;margin-top:4px;text-transform:uppercase;letter-spacing:2px;">the universe shatters</div>
+    <div style="margin-top:16px;font-size:13px;color:#c06050;max-width:420px;text-align:center;line-height:1.6;">
+      Shatter the 1.80e308 barrier. Points will grow without bound, but the game changes permanently.
+    </div>
+    <button id="breakInfBtn" style="margin-top:20px;padding:10px 32px;font-size:14px;font-weight:bold;background:#3a0a0a;color:#e74c3c;border:2px solid #e74c3c;border-radius:6px;cursor:pointer;text-transform:uppercase;letter-spacing:2px;">Break Infinity</button>
+    <div style="margin-top:16px;font-size:11px;color:#999;max-width:420px;text-align:left;line-height:1.8;">
+      <span style="color:#e74c3c;">Upgrade cost</span>: price &times; 1.125^n^1.75 above 1e308
+    </div>
+    <div id="breakInfStatus" style="margin-top:16px;font-size:12px;color:#888;display:none;">
+      Current IP gain: <span id="breakInfIPGain">0</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;flex-wrap:wrap;justify-content:center;">
+      <div class="infinity-upgrade" id="biUpg1" style="border-color:#8a1a0a;">
+        <div style="font-size:10px;color:#e74c3c;">PU effect &times; (1+log10(log10(pts))/50)</div>
+        <div style="font-size:9px;color:#888;margin-top:4px;">Cost: 1000 IP</div>
+        <div id="biUpg1Eff" style="font-size:9px;color:#8a4a3a;margin-top:3px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="page" id="page-help">
+  <div class="help-box">
+    <div class="help-title">Milestones</div>
+    <div class="help-item"><span class="help-label">Prestige unlock</span><span class="help-value prestige-color">10,000 points</span></div>
+    <div class="help-item"><span class="help-label">Prestige Challenges</span><span class="help-value challenge-color">10,000 pp</span></div>
+    <div class="help-item"><span class="help-label">Infinity</span><span class="help-value" style="color:#e67e22">1.80e308 points</span></div>
+  </div>
+  <div class="help-box">
+    <div class="help-title">How to Play</div>
+    <p style="color:#888;font-size:11px;line-height:1.7;">
+      Buy multiplier upgrades to increase your points per second.<br><br>
+      At <span style="color:#6ab0f0">10,000 points</span>, you can prestige — reset your points and upgrades in exchange for prestige points (PP). PP give a permanent point multiplier.<br><br>
+      At <span style="color:#d0c060">10,000 total PP</span>, Prestige Challenges unlock. Complete all 4 for powerful rewards and new prestige upgrades.
+    </p>
+  </div>
+  <div class="help-box" style="width:320px;">
+    <div class="help-title">Formulas &amp; Reference</div>
+    <div class="help-section-title">Multiplier Cost</div>
+    <div class="help-formula">
+      <span class="c">// base (bought &lt; 250)</span><br>
+      cost = (1.28 + log10(b)/100) ^ b<br>
+      <span class="c">// super scaling (b &ge; 250)</span><br>
+      cost = (1.28 + ln(b-249)/200 + log10(b)/100) ^ b<br>
+      <span class="c">// scaling overlay (b &ge; start)</span><br>
+      cost = cost ^ (1 + log10(b-start+1)/10 * mult)
+    </div>
+    <div class="help-section-title">Scaling Thresholds</div>
+    <table class="help-table">
+      <tr><th>Condition</th><th>Start</th><th>Mult</th></tr>
+      <tr><td>Default</td><td>60</td><td>1.0</td></tr>
+      <tr><td>In PC3</td><td>0</td><td>2.0</td></tr>
+      <tr><td>PC3 done</td><td>100</td><td>0.8/cpm</td></tr>
+      <tr><td>Super</td><td>250</td><td>+ln(n)/200</td></tr>
+    </table>
+    <div class="help-section-title">Points Per Second</div>
+    <div class="help-formula">
+      pps = mult ^ ch4Exp<br>
+      <span class="c">// PP-to-point multiplier</span><br>
+      ppExp = max(1 - ln(tPP+1)/(100+sqrt(ln(tPP+1))), 0.5)<br>
+      pps *= (3 * tPP^ppExp) ^ ch4Exp<br>
+      <span class="c">// +pUpg1: *ln(pts)^0.5</span><br>
+      <span class="c">// +pUpg2: *ln(time)^0.3</span>
+    </div>
+    <div class="help-section-title">PP Formula</div>
+    <div class="help-formula">
+      baseExp = 0.6 <span class="c">(+log10(pp)/1500 w/ pUpg5)</span><br>
+      exp = baseExp - min(log10(pts)/100, 0.25)<br>
+      pp = (pts/10000) ^ exp<br>
+      <span class="c">// +pUpg3: *ln(pts)^0.1</span>
+    </div>
+    <div class="help-section-title">Prestige Upgrades</div>
+    <table class="help-table">
+      <tr><th>#</th><th>Effect</th><th>Cost</th></tr>
+      <tr><td>1</td><td>pts * ln(pts)^0.5</td><td>1 pp</td></tr>
+      <tr><td>2</td><td>pts * ln(time)^0.3</td><td>2 pp</td></tr>
+      <tr><td>3</td><td>pp * ln(pts)^0.1</td><td>5 pp</td></tr>
+      <tr><td>4</td><td>mult power +log10(prestiges)/100</td><td>1e8 pp</td></tr>
+      <tr><td>5</td><td>pp exp +log10(pp)/1500</td><td>1e14 pp</td></tr>
+      <tr><td>6</td><td>challenge power &amp; auto prestige</td><td>1e20 pp</td></tr>
+    </table>
+    <div class="help-section-title">Prestige Challenges</div>
+    <table class="help-table">
+      <tr><th>PC</th><th>Effect</th><th>Target</th><th>Reward</th></tr>
+      <tr><td>1</td><td>No prestige boosts</td><td>1e9</td><td>pUpg ^1.5</td></tr>
+      <tr><td>2</td><td>No upgrades</td><td>10k</td><td>Autobuy</td></tr>
+      <tr><td>3</td><td>Harsh scaling</td><td>1e10</td><td>Scaling 0.8x</td></tr>
+      <tr><td>4</td><td>Everything sqrt'd</td><td>1e6</td><td>^1.2, pUpg 4-6</td></tr>
+    </table>
+    <div class="help-section-title">Automation</div>
+    <div class="help-formula">
+      <span class="c">// Autobuy (PC2 reward)</span><br>
+      interval = 0.95^level, cost = 2^level pp, max 68<br>
+      <span class="c">// Auto Multi-Buy</span><br>
+      buys 2^level per tick, cost = (1e50)^(1.2^level) pp, max 10 (unlimited)<br>
+      <span class="c">// Auto Prestige (pUpg6)</span><br>
+      auto prestige when PP gain &ge; 1
+    </div>
+    <div class="help-section-title" style="color:#e67e22">Infinity</div>
+    <div class="help-formula">
+      <span class="c">// IP Point Boost</span><br>
+      point * (IP+1)^(2 - min(ln(IP)/100, 1))<br>
+      <span class="c">// IP PP Boost</span><br>
+      pp * sqrt(point bonus) = (IP+1)^(exp/2)
+    </div>
+    <div class="help-section-title" style="color:#e67e22">Infinity Upgrades</div>
+    <table class="help-table">
+      <tr><th>#</th><th>Effect</th><th>Cost</th></tr>
+      <tr><td>1</td><td>point * log10(played sec)</td><td>1 IP</td></tr>
+      <tr><td>2</td><td>mult base +0.015</td><td>1 IP</td></tr>
+      <tr><td>3</td><td>point * log2(total IP)</td><td>2 IP</td></tr>
+      <tr><td>4</td><td>passive 25% best IP/min</td><td>3 IP</td></tr>
+      <tr><td>5</td><td>pp * ln(IP)</td><td>1 IP</td></tr>
+      <tr><td>6</td><td>pp formula power +0.03</td><td>1 IP</td></tr>
+      <tr><td>7</td><td>pp * log2(log2(sec)^5)</td><td>3 IP</td></tr>
+      <tr><td>8</td><td>autobuy 2x faster &amp; 2x more</td><td>5 IP</td></tr>
+      <tr><td>9</td><td>PC1 reward *1.1 + keep on infinity</td><td>3 IP</td></tr>
+      <tr><td>10</td><td>PC2 reward *1.1 + keep + max autobuy on infinity</td><td>5 IP</td></tr>
+      <tr><td>11</td><td>PC3 reward *1.1 + keep on infinity</td><td>7 IP</td></tr>
+      <tr><td>12</td><td>PC4 reward *1.1 + keep on infinity</td><td>10 IP</td></tr>
+      <tr><td>13</td><td>start with 100 pts on reset</td><td>15 IP</td></tr>
+      <tr><td>14</td><td>start with 1000 pts on reset</td><td>30 IP</td></tr>
+      <tr><td>15</td><td>start 5000 pts + PU1-3 on reset</td><td>60 IP</td></tr>
+      <tr><td>16</td><td>start 9999 pts + all PU, IP mult, auto inf</td><td>150 IP</td></tr>
+    </table>
+    <div class="help-formula">
+      <span class="c">// IP Multiplier (IU16)</span><br>
+      cost = 10^level, bonus = 2^level IP mult<br>
+      <span class="c">// Auto Infinity (IU16)</span><br>
+      upgrade cost = 2^level IP, interval = 150/2.5^level sec<br>
+      at interval &le; 0.1s: Break Infinity available (choice)<br>
+      <span class="c">// Break Infinity effects</span><br>
+      upgrade cost: price &times; 1.125^n^1.75 above 1e308
+    </div>
+    <div class="help-section-title">Number Format</div>
+    <div class="help-formula">
+      &ge;1e5: scientific (1.23e5)<br>
+      &lt;1e5: up to 5 sig digits
+    </div>
+  </div>
+</div>
+<div class="page" id="page-settings">
+  <div class="fps-box">
+    <div class="fps-label">Frame Rate</div>
+    <div class="fps-value" id="fpsValue">20 FPS</div>
+    <input type="range" class="fps-slider" id="fpsSlider" min="5" max="60" value="20">
+  </div>
+  <div class="setting-row">
+    <div class="setting-toggle on" id="confirmPrestigeToggle"></div>
+    <span>Confirm on prestige</span>
+  </div>
+  <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px;">
+    <div style="font-size:13px;color:#6ab0f0;font-weight:bold;margin-bottom:2px;">Save</div>
+    <div style="display:flex;gap:8px;">
+      <button class="save-btn" id="saveBtn">Save</button>
+      <button class="save-btn" id="loadBtn">Load</button>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="save-btn" id="exportBtn">Export</button>
+      <button class="save-btn" id="importBtn">Import</button>
+    </div>
+    <textarea id="saveText" rows="3" style="width:100%;background:#0e1a24;border:1px solid #2a4a6a;color:#aaa;font-size:11px;font-family:monospace;border-radius:4px;padding:6px;resize:vertical;display:none;"></textarea>
+    <div id="saveMsg" style="font-size:11px;color:#5a8a5a;min-height:14px;"></div>
+  </div>
+  <div class="dev-panel" id="devPanel">
+    <div class="dev-panel-title">Dev Tools</div>
+    <div class="dev-row">
+      <label>Set Points</label>
+      <input type="number" id="devPoints" placeholder="points">
+    </div>
+    <div class="dev-row">
+      <label>Game Speed (1 = normal)</label>
+      <input type="number" id="devSpeed" placeholder="1" step="0.1" min="0.1">
+    </div>
+    <div class="dev-row">
+      <label>Set PP</label>
+      <input type="number" id="devPP" placeholder="pp">
+    </div>
+    <div class="dev-row">
+      <label>Set Prestige Count</label>
+      <input type="number" id="devPrestigeCount" placeholder="count">
+    </div>
+    <div class="dev-row">
+      <label>Set IP</label>
+      <input type="number" id="devIP" placeholder="ip">
+    </div>
+    <button class="dev-apply" id="devApply">Apply</button>
+    <button class="dev-apply" id="devCompletePC" style="background:#1a2a1a;border-color:#3a6a3a;color:#6c6;">Complete All PC</button>
+    <button class="dev-apply" id="devBuyAllIU" style="background:#2a1a0a;border-color:#8a4a0a;color:#e67e22;">Buy All IU</button>
+    <button class="dev-apply" id="devMaxAuto" style="background:#0a1a2a;border-color:#0a4a8a;color:#6ab0f0;">Max Autobuyer</button>
+  </div>
+  <button class="hard-reset-btn" id="hardResetBtn">Hard Reset</button>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-msg" id="modalMsg"></div>
+    <div class="modal-btns">
+      <button class="modal-btn" id="modalNo">Cancel</button>
+      <button class="modal-btn yes" id="modalYes">Confirm</button>
+    </div>
+  </div>
+</div>
+<div id="bigCrunchOverlay">
+  <div class="crunch-text">BIG CRUNCH</div>
+  <div class="crunch-sub">Click to collapse the universe</div>
+</div>
+<script>
+// === BigNum: {m, e} where value = m * 10^e, 1 <= |m| < 10 (or m=0,e=0) ===
+function B(m, e) {
+  if (typeof m === 'object' && m !== null && 'm' in m) return {m: m.m, e: m.e};
+  if (e === undefined) e = 0;
+  if (m === 0 || !isFinite(m)) return {m: 0, e: 0};
+  // absorb exponent from m
+  if (m !== 0) {
+    const log = Math.log10(Math.abs(m));
+    const shift = Math.floor(log);
+    e += shift;
+    m = m / Math.pow(10, shift);
+    // fix float drift
+    if (Math.abs(m) >= 10) { m /= 10; e++; }
+    if (Math.abs(m) < 1 && m !== 0) { m *= 10; e--; }
+  }
+  return {m, e};
+}
+function Bn(n) { return B(n, 0); } // from native number
+function Bval(a) { // to native (may overflow to Infinity)
+  if (a.e > 308) return a.m > 0 ? Infinity : -Infinity;
+  if (a.e < -324) return 0;
+  return a.m * Math.pow(10, a.e);
+}
+function Bgt(a, b) { // a > b
+  if (a.m <= 0 && b.m <= 0) return false; // both zero or neg
+  if (a.m > 0 && b.m <= 0) return true;
+  if (a.m <= 0 && b.m > 0) return false;
+  if (a.e !== b.e) return a.e > b.e;
+  return a.m > b.m;
+}
+function Bgte(a, b) { return !Bgt(b, a); }
+function Blt(a, b) { return Bgt(b, a); }
+function Blte(a, b) { return !Bgt(a, b); }
+function Beq0(a) { return a.m === 0; }
+function Badd(a, b) {
+  if (a.m === 0) return B(b);
+  if (b.m === 0) return B(a);
+  // align exponents
+  const diff = a.e - b.e;
+  if (diff > 17) return B(a); // b is negligible
+  if (diff < -17) return B(b);
+  let sum;
+  if (diff >= 0) {
+    sum = a.m + b.m * Math.pow(10, -diff);
+    return B(sum, a.e);
+  } else {
+    sum = a.m * Math.pow(10, diff) + b.m;
+    return B(sum, b.e);
+  }
+}
+function Bsub(a, b) { return Badd(a, B(-b.m, b.e)); }
+function Bmul(a, b) {
+  if (a.m === 0 || b.m === 0) return B(0, 0);
+  return B(a.m * b.m, a.e + b.e);
+}
+function Bdiv(a, b) {
+  if (b.m === 0) return B(0, 0);
+  if (a.m === 0) return B(0, 0);
+  return B(a.m / b.m, a.e - b.e);
+}
+function Bpow(a, p) { // a^p where p is a normal number
+  if (a.m === 0) return B(0, 0);
+  if (p === 0) return B(1, 0);
+  if (p === 1) return B(a);
+  // log10(a) = log10(m) + e, then result = 10^(p * log10(a))
+  const la = Math.log10(Math.abs(a.m)) + a.e;
+  const lr = p * la;
+  const re = Math.floor(lr);
+  const rm = Math.pow(10, lr - re);
+  // handle negative base with integer exponent
+  if (a.m < 0 && p === Math.floor(p) && p % 2 !== 0) {
+    return B(-rm, re);
+  }
+  return B(rm, re);
+}
+function Blog10(a) { // returns native number
+  if (a.m <= 0) return 0;
+  return Math.log10(a.m) + a.e;
+}
+function Bln(a) { // returns native number
+  if (a.m <= 0) return 0;
+  return Math.log(a.m) + a.e * Math.LN10;
+}
+function Bmax(a, b) { return Bgt(a, b) ? B(a) : B(b); }
+function Bfloor(a) {
+  const v = Bval(a);
+  if (isFinite(v)) return Bn(Math.floor(v));
+  // large number, already integer conceptually
+  return B(a);
+}
+function Bfmt(a) {
+  if (a.m === 0) return '0';
+  if (a.e >= 5 || a.e <= -4) {
+    return a.m.toFixed(2) + 'e' + a.e;
+  }
+  const v = Bval(a);
+  const abs = Math.abs(v);
+  const intDigits = abs < 1 ? 1 : Math.floor(Math.log10(abs)) + 1;
+  const decimals = Math.max(0, 5 - intDigits);
+  return v.toFixed(decimals);
+}
+// === Custom modal confirm (replaces window.confirm which is blocked in sandboxed iframes) ===
+const modalOverlay = document.getElementById('modalOverlay');
+const modalBox = document.getElementById('modalBox');
+const modalMsg = document.getElementById('modalMsg');
+const modalYes = document.getElementById('modalYes');
+const modalNo = document.getElementById('modalNo');
+let _modalYesCb = null;
+let _modalNoCb = null;
+let _modalOverlayCb = null;
+function gameConfirm(msg, onYes, isDanger) {
+  modalMsg.textContent = msg;
+  modalBox.classList.toggle('danger', !!isDanger);
+  modalYes.className = 'modal-btn ' + (isDanger ? 'danger' : 'yes');
+  modalYes.textContent = isDanger ? 'Reset' : 'Confirm';
+  modalOverlay.classList.add('open');
+  if (_modalYesCb) modalYes.removeEventListener('click', _modalYesCb);
+  if (_modalNoCb) modalNo.removeEventListener('click', _modalNoCb);
+  if (_modalOverlayCb) modalOverlay.removeEventListener('click', _modalOverlayCb);
+  function closeModal() { modalOverlay.classList.remove('open'); }
+  _modalYesCb = () => { closeModal(); onYes(); };
+  _modalNoCb = () => { closeModal(); };
+  _modalOverlayCb = (e) => { if (e.target === modalOverlay) closeModal(); };
+  modalYes.addEventListener('click', _modalYesCb);
+  modalNo.addEventListener('click', _modalNoCb);
+  modalOverlay.addEventListener('click', _modalOverlayCb);
+}
+let points = Bn(0);
+let multiplier = Bn(1);
+let bought = 0;
+let gameSpeed = 1;
+let prestigeUnlocked = false;
+let playStartTime = Date.now();
+let prestigePoints = Bn(0);
+let totalPrestigePoints = Bn(0);
+let hasPrestiged = false;
+let prestigeBoxEverShown = false;
+let pUpg1Bought = false;
+let pUpg2Bought = false;
+let pUpg3Bought = false;
+let runStartTime = Date.now();
+let runTotalPoints = Bn(0);
+let bestPPM = Bn(0);
+let challengeCompleted = [false,false,false,false];
+let inChallenge = -1;
+let selectedChallenge = -1;
+let confirmPrestige = true;
+let autobuyLevel = 0;
+let autobuyEnabled = true;
+let autoMultiBuyLevel = 0;
+let prestigeCount = 0;
+let pUpg4Bought = false;
+let pUpg5Bought = false;
+let pUpg6Bought = false;
+let autoPrestigeEnabled = false;
+let infinityPoints = Bn(0);
+let hasInfinitied = false;
+let infinityResets = 0;
+let infinityStartTime = Date.now();
+let bestInfinityTime = Infinity;
+let bestIPM = Bn(0);
+let iUpg1Bought = false;
+let iUpg2Bought = false;
+let iUpg3Bought = false;
+let iUpg4Bought = false;
+let iUpg5Bought = false;
+let iUpg6Bought = false;
+let iUpg7Bought = false;
+let iUpg8Bought = false;
+let iUpg9Bought = false;
+let iUpg10Bought = false;
+let iUpg11Bought = false;
+let iUpg12Bought = false;
+let iUpg13Bought = false;
+let iUpg14Bought = false;
+let iUpg15Bought = false;
+let iUpg16Bought = false;
+let ipMultLevel = 0;
+let autoInfinityEnabled = false;
+let autoInfinityLevel = 0;
+let breakInfinityUnlocked = false;
+let biUpg1Bought = false;
+let totalIPEarned = Bn(0);
+
+const challengeData = [
+  { name: 'No Prestige Boost', desc: 'Prestige upgrade boosts are disabled.<br>PP-to-point multiplier still active.', target: 1e9, reward: 'All prestige upgrades ^1.5' },
+  { name: 'No Upgrades', desc: 'You cannot buy normal upgrades.', target: 10000, reward: 'Autobuy normal upgrades (1/s)' },
+  { name: 'Harsh Scaling', desc: 'Cost scaling starts at 0 upgrades<br>and is 2x stronger.', target: 1e10, reward: 'Scaling starts at 100 and is 0.8x weaker' },
+  { name: 'Square Root', desc: 'Everything is square rooted:<br>point gain, PP-point mult, prestige upgrades, challenge bonuses.', target: 1e6, reward: 'Everything ^1.2. Unlock more prestige upgrades.' }
+];
+
+function getMultPower() {
+  let base = 1.2;
+  if (pUpg4Bought && prestigeCount > 0) {
+    let bonus = Math.log10(prestigeCount) / 100;
+    if (biUpg1Bought) bonus *= getBIU1Mult();
+    base = 1.2 + bonus;
+  }
+  if (iUpg2Bought) {
+    base += 0.015;
+  }
+  return base;
+}
+
+function getChallengePowerMult() {
+  if (!pUpg6Bought || Blte(prestigePoints, Bn(1))) return 1;
+  let val = 1 + Math.pow(Bln(prestigePoints), 0.5) / 170;
+  if (biUpg1Bought) val *= getBIU1Mult();
+  return val;
+}
+
+function getBIU1Mult() {
+  const pLog = Blog10(Bmax(points, Bn(1)));
+  if (pLog <= 1) return 1;
+  const ll = Math.log10(pLog);
+  return 1 + ll / 50;
+}
+
+// PC reward helpers (with IU9-12 *1.1 bonus)
+function getPC1Exp() { // base 1.5, prestige upgrades exponent
+  return iUpg9Bought ? 1.5 * 1.1 : 1.5;
+}
+function getPC2SpeedMult() { // autobuy speed multiplier
+  return iUpg10Bought ? 1.1 : 1;
+}
+function getPC3ScalingMult() { // scaling weakness (lower = weaker scaling)
+  return iUpg11Bought ? 0.8 / 1.1 : 0.8;
+}
+function getPC4Exp() { // base 1.2, everything exponent
+  return iUpg12Bought ? 1.2 * 1.1 : 1.2;
+}
+
+function getStartPoints() {
+  if (iUpg16Bought) return 9999;
+  if (iUpg15Bought) return 5000;
+  if (iUpg14Bought) return 1000;
+  if (iUpg13Bought) return 100;
+  return 0;
+}
+
+function applyStartBonuses() {
+  const sp = getStartPoints();
+  if (sp > 0) points = Bn(sp);
+  if (iUpg16Bought) {
+    pUpg1Bought = true; pUpg2Bought = true; pUpg3Bought = true;
+    pUpg4Bought = true; pUpg5Bought = true; pUpg6Bought = true;
+  } else if (iUpg15Bought) {
+    pUpg1Bought = true; pUpg2Bought = true; pUpg3Bought = true;
+  }
+}
+
+function getIPMultiplier() {
+  return Bn(Math.pow(2, ipMultLevel));
+}
+
+function getIPMultCost() {
+  return Bn(Math.pow(10, ipMultLevel));
+}
+
+function getAutoInfInterval() {
+  return 150 / Math.pow(2.5, autoInfinityLevel);
+}
+
+function getAutoInfCost() {
+  return Bn(Math.pow(2, autoInfinityLevel));
+}
+
+function getBaseIPGain() {
+  if (!breakInfinityUnlocked) return Bn(1);
+  // points^(1/308) / 10
+  const pLog = Blog10(Bmax(points, Bn(1)));
+  const resultLog = pLog / 308 - 1; // divide by 10 = subtract 1 in log space
+  if (resultLog < 0) return Bn(1);
+  const e = Math.floor(resultLog);
+  const m = Math.pow(10, resultLog - e);
+  return B(m, e);
+}
+
+function getCost() {
+  if (bought === 0) return Bn(1);
+  const x = bought;
+  let costLog; // work in log10 space to avoid overflow
+  if (bought >= 250) {
+    costLog = x * Math.log10(1.28 + Math.log(bought - 250 + 1) / 200 + Math.log10(x) / 100);
+  } else {
+    costLog = x * Math.log10(1.28 + Math.log10(x) / 100);
+  }
+  // scaling: determine threshold and strength
+  let scalingStart = 60;
+  let scalingMult = 1;
+  if (inChallenge === 2) {
+    scalingStart = 0;
+    scalingMult = 2;
+  } else if (challengeCompleted[2]) {
+    scalingStart = 100;
+    scalingMult = getPC3ScalingMult() / getChallengePowerMult();
+  }
+  if (bought >= scalingStart) {
+    const offset = Math.max(bought - scalingStart + 1, 1);
+    costLog = costLog * (1 + Math.log10(offset) / 10 * scalingMult);
+  }
+  // Break Infinity: price × 1.125^(n^1.5) per buy above 1e308
+  if (breakInfinityUnlocked && costLog > 308) {
+    const avgGrowthPerUpg = costLog / Math.max(bought, 1);
+    const threshold = Math.ceil(308 / avgGrowthPerUpg);
+    const over = Math.max(bought - threshold, 0);
+    costLog += Math.pow(over, 1.75) * Math.log10(1.125);
+  }
+  const e = Math.floor(costLog);
+  const m = Math.pow(10, costLog - e);
+  return B(m, e);
+}
+
+function getPPS() {
+  const ch1Active = inChallenge === 0;
+  const cpm = getChallengePowerMult();
+  const ch4Exp = inChallenge === 3 ? 0.5 : (challengeCompleted[3] ? getPC4Exp() * cpm : 1);
+  let base = Bpow(multiplier, ch4Exp);
+  if (Bgt(totalPrestigePoints, Bn(0))) {
+    const lnpp = Bln(Badd(totalPrestigePoints, Bn(1)));
+    const ppExp = Math.max(1 - lnpp / (100 + Math.pow(lnpp, 0.5)), 0.5);
+    let ppMult = Bmul(Bn(3), Bpow(totalPrestigePoints, ppExp));
+    base = Bmul(base, Bpow(ppMult, ch4Exp));
+  }
+  if (!ch1Active && pUpg1Bought && Bgt(points, Bn(1))) {
+    let upg1 = Math.pow(Bln(points), 0.5);
+    let e1 = challengeCompleted[0] ? getPC1Exp() * cpm : 1;
+    let pu1Mult = Math.pow(Math.pow(upg1, e1), ch4Exp);
+    if (biUpg1Bought) pu1Mult *= getBIU1Mult();
+    base = Bmul(base, Bn(pu1Mult));
+  }
+  if (!ch1Active && pUpg2Bought) {
+    const totalSec = (Date.now() - playStartTime) / 1000;
+    if (totalSec > 1) {
+      let upg2 = Math.pow(Math.log(totalSec), 0.3);
+      let e2 = challengeCompleted[0] ? getPC1Exp() * cpm : 1;
+      let pu2Mult = Math.pow(Math.pow(upg2, e2), ch4Exp);
+      if (biUpg1Bought) pu2Mult *= getBIU1Mult();
+      base = Bmul(base, Bn(pu2Mult));
+    }
+  }
+  // IP boost: point * (IP+1)^(2 - min(ln(IP)/100, 1))
+  if (Bgt(infinityPoints, Bn(0))) {
+    const ipLog = Blog10(infinityPoints);
+    const ipExp = 2 - Math.min(Bln(infinityPoints) / 100, 1);
+    base = Bmul(base, Bpow(Badd(infinityPoints, Bn(1)), ipExp));
+  }
+  // IU1: point * log10(played seconds)
+  if (iUpg1Bought) {
+    const totalSec = (Date.now() - playStartTime) / 1000;
+    if (totalSec > 10) {
+      base = Bmul(base, Bn(Math.log10(totalSec)));
+    }
+  }
+  // IU3: point * log2(total IP earned)
+  if (iUpg3Bought && Bgt(totalIPEarned, Bn(1))) {
+    const log2tip = Blog10(totalIPEarned) / Math.log10(2);
+    if (log2tip > 0) base = Bmul(base, Bn(log2tip));
+  }
+  return base;
+}
+
+const ptsEl = document.getElementById('pts');
+const ppsEl = document.getElementById('pps');
+const upgEl = document.getElementById('upg');
+const upgCostEl = document.getElementById('upgCost');
+const upgCountEl = document.getElementById('upgCount');
+const upgMultEl = document.getElementById('upgMult');
+const scalingInfo = document.getElementById('scalingInfo');
+const prestigeBox = document.getElementById('prestigeBox');
+const ppDisplayEl = document.getElementById('ppDisplay');
+const prestigePagePPEl = document.getElementById('prestigePagePP');
+const prestigePageBoostEl = document.getElementById('prestigePageBoost');
+const prestigeTab = document.getElementById('prestigeTab');
+const pUpg1El = document.getElementById('pUpg1');
+const pUpg2El = document.getElementById('pUpg2');
+const pUpg3El = document.getElementById('pUpg3');
+const pUpg4El = document.getElementById('pUpg4');
+const pUpg4Row = document.getElementById('pUpg4Row');
+const pUpg5El = document.getElementById('pUpg5');
+const pUpg6El = document.getElementById('pUpg6');
+const autoPrestigeEl = document.getElementById('autoPrestige');
+const autoPrestigeToggle = document.getElementById('autoPrestigeToggle');
+const statPointsEl = document.getElementById('statPoints');
+const statRunTotalEl = document.getElementById('statRunTotal');
+const statPlaytimeEl = document.getElementById('statPlaytime');
+const statRunTimeEl = document.getElementById('statRunTime');
+const statPPEl = document.getElementById('statPP');
+const statTotalPPEl = document.getElementById('statTotalPP');
+const statBestPPMEl = document.getElementById('statBestPPM');
+const statPrestigeCountEl = document.getElementById('statPrestigeCount');
+const challengeGrid = document.getElementById('challengeGrid');
+const challengeBtn = document.getElementById('challengeBtn');
+const challengeInfo = document.getElementById('challengeInfo');
+const challengeSubTab = document.getElementById('challengeSubTab');
+const bigCrunchOverlay = document.getElementById('bigCrunchOverlay');
+const infinityTab = document.getElementById('infinityTab');
+
+// prestige sub-tabs
+document.querySelectorAll('.prestige-subtab').forEach(st => {
+  st.addEventListener('click', () => {
+    document.querySelectorAll('.prestige-subtab').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.prestige-subpage').forEach(p => p.classList.remove('active'));
+    st.classList.add('active');
+    document.getElementById('psub-' + st.dataset.psub).classList.add('active');
+  });
+});
+
+document.querySelectorAll('.infinity-subtab').forEach(st => {
+  st.addEventListener('click', () => {
+    document.querySelectorAll('.infinity-subtab').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.infinity-subpage').forEach(p => p.classList.remove('active'));
+    st.classList.add('active');
+    document.getElementById('isub-' + st.dataset.isub).classList.add('active');
+  });
+});
+
+// generate challenge grid
+for (let i = 0; i < 4; i++) {
+  const card = document.createElement('div');
+  card.className = 'challenge-card';
+  card.dataset.ch = i;
+  card.innerHTML = '<div class="ch-num">' + (i + 1) + '</div><div class="ch-label">Challenge</div>';
+  card.addEventListener('click', () => {
+    selectedChallenge = i;
+    renderChallengeUI();
+  });
+  challengeGrid.appendChild(card);
+}
+
+challengeBtn.addEventListener('click', () => {
+  if (selectedChallenge < 0) return;
+  if (inChallenge === selectedChallenge) {
+    // exit challenge
+    gameConfirm('Exit Prestige Challenge ' + (selectedChallenge + 1) + '?', () => {
+      inChallenge = -1;
+      points = Bn(0);
+      multiplier = Bn(1);
+      bought = 0;
+      prestigeUnlocked = false;
+      runStartTime = Date.now();
+      runTotalPoints = Bn(0);
+      applyStartBonuses();
+      renderChallengeUI();
+      render();
+    });
+  } else if (inChallenge >= 0) {
+    // already in a different challenge
+    return;
+  } else {
+    // enter challenge
+    gameConfirm('Enter Prestige Challenge ' + (selectedChallenge + 1) + '? Points and upgrades will be reset.', () => {
+      inChallenge = selectedChallenge;
+      points = Bn(0);
+      multiplier = Bn(1);
+      bought = 0;
+      prestigeUnlocked = false;
+      runStartTime = Date.now();
+      runTotalPoints = Bn(0);
+      applyStartBonuses();
+      renderChallengeUI();
+      render();
+    });
+  }
+});
+
+function renderChallengeUI() {
+  // update challenge cards
+  document.querySelectorAll('.challenge-card').forEach(card => {
+    const idx = parseInt(card.dataset.ch);
+    card.classList.toggle('completed', challengeCompleted[idx]);
+    card.classList.toggle('in-challenge', inChallenge === idx);
+  });
+  // update info and button
+  if (selectedChallenge >= 0) {
+    const idx = selectedChallenge;
+    const completed = challengeCompleted[idx];
+    let statusText = completed ? ' (Completed)' : '';
+    if (inChallenge === idx) statusText = ' (Active)';
+    challengeInfo.innerHTML =
+      '<div class="ch-title">Prestige Challenge ' + (idx + 1) + ': ' + challengeData[idx].name + statusText + '</div>' +
+      challengeData[idx].desc + '<br>' +
+      'Target: ' + fmt(challengeData[idx].target) + ' points<br>' +
+      'Reward: ' + challengeData[idx].reward;
+    challengeBtn.style.display = '';
+    if (inChallenge === idx) {
+      challengeBtn.textContent = 'Exit Challenge';
+      challengeBtn.classList.add('exit');
+    } else if (inChallenge >= 0) {
+      challengeBtn.textContent = 'In Challenge ' + (inChallenge + 1);
+      challengeBtn.style.display = 'none';
+    } else {
+      challengeBtn.textContent = 'Enter Challenge';
+      challengeBtn.classList.remove('exit');
+    }
+  } else {
+    challengeInfo.innerHTML = '<div class="ch-title">Prestige Challenges</div>Select a challenge to view details';
+    challengeBtn.style.display = 'none';
+  }
+}
+
+function fmtTime(ms) {
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  return h + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+}
+
+function ppBaseExp() {
+  let base = 0.6;
+  if (pUpg5Bought && Bgt(prestigePoints, Bn(1))) {
+    let bonus = Blog10(prestigePoints) / 1500;
+    if (biUpg1Bought) bonus *= getBIU1Mult();
+    base += bonus;
+  }
+  if (iUpg6Bought) {
+    base += 0.03;
+  }
+  return base;
+}
+
+function getPrestigePoints() {
+  const cpm = getChallengePowerMult();
+  const ch4Exp = inChallenge === 3 ? 0.5 : (challengeCompleted[3] ? getPC4Exp() * cpm : 1);
+  const ptsLog = Blog10(Bmax(points, Bn(1)));
+  const exp = ppBaseExp() - Math.min(ptsLog / 100, 0.25);
+  // pp = (points / 10000) ^ exp => log10(pp) = exp * (log10(points) - 4)
+  const ppLog = exp * (Blog10(points) - 4);
+  if (ppLog < 0) return Bn(0);
+  let pp = B(Math.pow(10, ppLog - Math.floor(ppLog)), Math.floor(ppLog));
+  if (pUpg3Bought && Bgt(points, Bn(1)) && inChallenge !== 0) {
+    let upg3 = Math.pow(Bln(points), 0.1);
+    let e3 = challengeCompleted[0] ? getPC1Exp() * cpm : 1;
+    let pu3Mult = Math.pow(Math.pow(upg3, e3), ch4Exp);
+    if (biUpg1Bought) pu3Mult *= getBIU1Mult();
+    pp = Bmul(pp, Bn(pu3Mult));
+  }
+  // IP boost to PP: sqrt of point bonus = (IP+1)^((2 - min(ln(IP)/100, 1)) / 2)
+  if (Bgt(infinityPoints, Bn(0))) {
+    const ipExp = (2 - Math.min(Bln(infinityPoints) / 100, 1)) / 2;
+    pp = Bmul(pp, Bpow(Badd(infinityPoints, Bn(1)), ipExp));
+  }
+  // IU5: pp * ln(IP)
+  if (iUpg5Bought && Bgt(infinityPoints, Bn(1))) {
+    const lnIP = Bln(infinityPoints);
+    if (lnIP > 0) pp = Bmul(pp, Bn(lnIP));
+  }
+  // IU7: pp * log2(log2(played sec)^5)
+  if (iUpg7Bought) {
+    const totalSec = (Date.now() - playStartTime) / 1000;
+    if (totalSec > 4) { // log2(sec) > 2 so log2(log2(sec)^5) > 0
+      const inner = Math.pow(Math.log2(totalSec), 5);
+      if (inner > 1) {
+        pp = Bmul(pp, Bn(Math.log2(inner)));
+      }
+    }
+  }
+  return pp;
+}
+
+function getNextPrestigePointAt() {
+  const cpm = getChallengePowerMult();
+  const ch4Exp = inChallenge === 3 ? 0.5 : (challengeCompleted[3] ? getPC4Exp() * cpm : 1);
+  const curPP = Bval(Bfloor(getPrestigePoints()));
+  const nextPP = curPP + 1;
+  if (!isFinite(nextPP) || nextPP > 1e15) return Bn(0); // too large to binary search
+  // binary search in log10 space
+  let loLog = 4, hiLog = 30; // log10 of search range
+  for (let i = 0; i < 100; i++) {
+    const midLog = (loLog + hiLog) / 2;
+    const midE = Math.floor(midLog);
+    const midM = Math.pow(10, midLog - midE);
+    const mid = {m: midM, e: midE};
+    const midLn = Bln(mid);
+    const midLog10 = Blog10(mid);
+    const exp = ppBaseExp() - Math.min(midLog10 / 100, 0.25);
+    let ppLog = exp * (midLog10 - 4);
+    let valLog = ppLog;
+    if (pUpg3Bought && midLog10 > 0 && inChallenge !== 0) {
+      let upg3 = Math.pow(midLn, 0.1);
+      let e3 = challengeCompleted[0] ? getPC1Exp() * cpm : 1;
+      valLog += Math.log10(Math.pow(Math.pow(upg3, e3), ch4Exp));
+    }
+    if (Math.pow(10, valLog) < nextPP) loLog = midLog; else hiLog = midLog;
+  }
+  const resLog = (loLog + hiLog) / 2;
+  const resE = Math.floor(resLog);
+  const resM = Math.pow(10, resLog - resE);
+  return B(resM, resE);
+}
+
+function getPrestigeRate() {
+  if (Blte(points, Bn(0))) return 0;
+  const cpm = getChallengePowerMult();
+  const ch4Exp = inChallenge === 3 ? 0.5 : (challengeCompleted[3] ? getPC4Exp() * cpm : 1);
+  // work in log space for derivative
+  const p = Blog10(points);
+  const delta = 1e-6; // small delta in log10 space
+  function ppAtLog(lg) {
+    const exp = ppBaseExp() - Math.min(lg / 100, 0.25);
+    let ppLog = exp * (lg - 4);
+    if (pUpg3Bought && lg > 0 && inChallenge !== 0) {
+      const ln = lg * Math.LN10;
+      let upg3 = Math.pow(ln, 0.1);
+      let e3 = challengeCompleted[0] ? getPC1Exp() * cpm : 1;
+      ppLog += Math.log10(Math.pow(Math.pow(upg3, e3), ch4Exp));
+    }
+    return ppLog;
+  }
+  const pp1 = ppAtLog(p);
+  const pp2 = ppAtLog(p + delta);
+  // dpp/dpoints * pps = (10^pp2 - 10^pp1) / (10^(p+delta) - 10^p) * pps
+  // in log: d(10^ppLog)/d(10^p) = 10^(ppLog) * dppLog/dp * ln(10) / (10^p * ln(10)) = 10^(ppLog-p) * dppLog/dp
+  const dppLog = (pp2 - pp1) / delta;
+  // rate in log10: log10(rate) = ppLog + log10(dppLog) + log10(pps) - p  ... but this gets complicated
+  // simpler: use native if possible
+  const ppsVal = Bval(getPPS());
+  if (!isFinite(ppsVal)) return Infinity;
+  const ppVal1 = Math.pow(10, pp1);
+  const ppVal2 = Math.pow(10, pp2);
+  const pVal = Math.pow(10, p);
+  const pVal2 = Math.pow(10, p + delta);
+  if (!isFinite(pVal2) || !isFinite(ppVal2)) return 0;
+  return ((ppVal2 - ppVal1) / (pVal2 - pVal)) * ppsVal;
+}
+
+function fmtPrestigeRate() {
+  const ppPerSec = getPrestigeRate();
+  const ppPerMin = ppPerSec * 60;
+  if (ppPerMin < 1) {
+    return fmt(ppPerMin) + ' pp per minute';
+  }
+  const ppPerHour = ppPerMin * 60;
+  if (ppPerHour >= 1 && ppPerMin >= 1 && ppPerHour < 60) {
+    return fmt(ppPerMin) + ' pp per minute';
+  }
+  if (ppPerHour >= 60) {
+    return fmt(ppPerHour) + ' pp per hour';
+  }
+  // ppPerMin >= 1 but ppPerHour < 1 shouldn't happen, fallback
+  const ppPerDay = ppPerHour * 24;
+  if (ppPerDay >= 1) {
+    return fmt(ppPerDay) + ' pp per day';
+  }
+  return fmt(ppPerMin) + ' pp per minute';
+}
+
+function fmt(n) {
+  // accept BigNum or native
+  if (typeof n === 'object' && n !== null && 'm' in n) return Bfmt(n);
+  const abs = Math.abs(n);
+  if (abs >= 1e5) {
+    const exp = Math.floor(Math.log10(abs));
+    const base = n / Math.pow(10, exp);
+    return base.toFixed(2) + 'e' + exp;
+  }
+  const intDigits = abs < 1 ? 1 : Math.floor(Math.log10(abs)) + 1;
+  const decimals = Math.max(0, 5 - intDigits);
+  return n.toFixed(decimals);
+}
+
+function updateProgressBars() {
+  const row1 = document.getElementById('progRow1');
+  const row2 = document.getElementById('progRow2');
+  // Bar 1: before prestige, target 10000 points, logarithmic. Hidden after first prestige.
+  if (!hasPrestiged) {
+    row1.classList.remove('hidden');
+    const p = Blog10(Bmax(points, Bn(1)));
+    const pct = Math.min(p / 4 * 100, 100);
+    document.getElementById('progFill1').style.width = pct.toFixed(2) + '%';
+    document.getElementById('progLabel1').textContent = 'Prestige: ' + fmt(points) + ' / 10000';
+  } else {
+    row1.classList.add('hidden');
+  }
+  // Bar 2: before PC unlock, target 10000 pp, logarithmic. Hidden after challenges unlocked.
+  if (hasPrestiged && Blt(totalPrestigePoints, Bn(10000))) {
+    row2.classList.remove('hidden');
+    const pp = Blog10(Bmax(totalPrestigePoints, Bn(1)));
+    const pct = Math.min(pp / 4 * 100, 100);
+    document.getElementById('progFill2').style.width = pct.toFixed(2) + '%';
+    document.getElementById('progLabel2').textContent = 'Challenges: ' + fmt(Bfloor(totalPrestigePoints)) + ' / 10000 pp';
+  } else {
+    row2.classList.add('hidden');
+  }
+  // Bar 3: Infinity progress, shown after challenges unlocked (10k total PP)
+  const row3 = document.getElementById('progRow3');
+  const showInfBar = hasPrestiged && Bgte(totalPrestigePoints, Bn(10000));
+  if (showInfBar) {
+    row3.classList.remove('hidden');
+    const logTarget = Math.log10(1.8) + 308; // ~308.255
+    const p = Blog10(Bmax(points, Bn(1)));
+    const pct = Math.min(p / logTarget * 100, 100);
+    document.getElementById('progFill3').style.width = pct.toFixed(2) + '%';
+    document.getElementById('progLabel3').textContent = 'Infinity: ' + fmt(points) + ' / 1.80e308';
+  } else {
+    row3.classList.add('hidden');
+  }
+}
+
+function render() {
+  ptsEl.textContent = fmt(points);
+  ppsEl.textContent = '+' + fmt(getPPS()) + '/s';
+  const cost = getCost();
+  upgCostEl.textContent = 'Cost: ' + fmt(cost);
+  upgCountEl.textContent = 'Bought: ' + bought;
+  upgMultEl.textContent = fmt(multiplier) + 'x';
+  let scalingStart = 60;
+  let scalingMult = 1;
+  if (inChallenge === 2) {
+    scalingStart = 0;
+    scalingMult = 2;
+  } else if (challengeCompleted[2]) {
+    scalingStart = 100;
+    scalingMult = getPC3ScalingMult() / getChallengePowerMult();
+  }
+  if (bought >= scalingStart) {
+    const offset = Math.max(bought - scalingStart + 1, 1);
+    const exp = 1 + Math.log10(offset) / 10 * scalingMult;
+    let scalingText = 'Scaling active: cost ^' + exp.toFixed(4);
+    if (bought >= 250) {
+      scalingText += ' | Super scaling: base 1.28 + ln(' + (bought - 250 + 1) + ')/200';
+    }
+    scalingInfo.textContent = scalingText;
+    scalingInfo.style.display = '';
+  } else if (bought >= 250) {
+    scalingInfo.textContent = 'Super scaling: base 1.28 + ln(' + (bought - 250 + 1) + ')/200';
+    scalingInfo.style.display = '';
+  } else {
+    scalingInfo.style.display = 'none';
+  }
+  if (Bgte(points, cost) && inChallenge !== 1) {
+    upgEl.classList.add('can-buy');
+  } else {
+    upgEl.classList.remove('can-buy');
+  }
+  if (!prestigeUnlocked && Bgte(points, Bn(10000))) {
+    prestigeUnlocked = true;
+  }
+  // check challenge completion - just mark ready, don't auto-exit
+  let challengeReady = inChallenge >= 0 && !challengeCompleted[inChallenge] && Bgte(points, Bn(challengeData[inChallenge].target));
+  if (prestigeUnlocked) prestigeBoxEverShown = true;
+  // prestige box: once shown, never hide; faded if pp gain < 1
+  if (prestigeBoxEverShown) {
+    prestigeBox.classList.add('visible');
+    if (inChallenge >= 0) {
+      // in challenge mode
+      if (challengeReady) {
+        prestigeBox.innerHTML = 'Complete PC' + (inChallenge + 1);
+        prestigeBox.classList.remove('faded');
+      } else {
+        const remaining = Bsub(Bn(challengeData[inChallenge].target), points);
+        prestigeBox.innerHTML =
+          'you need ' + fmt(Bmax(remaining, Bn(0))) + ' points<br>' +
+          'to complete challenge';
+        prestigeBox.classList.add('faded');
+      }
+    } else {
+      const pp = Bfloor(getPrestigePoints());
+      const nextAt = getNextPrestigePointAt();
+      prestigeBox.innerHTML =
+        'prestige for ' + fmt(pp) + '<br>' +
+        'prestige points<br>' +
+        'next pp at ' + fmt(nextAt) + ' points<br>' +
+        fmtPrestigeRate();
+      if (Blt(pp, Bn(1))) {
+        prestigeBox.classList.add('faded');
+      } else {
+        prestigeBox.classList.remove('faded');
+      }
+    }
+  }
+  // prestige tab: only show after first prestige reset
+  prestigeTab.style.display = hasPrestiged ? '' : 'none';
+  // automation tab: show after PC2 completed
+  const automationTab = document.getElementById('automationTab');
+  automationTab.style.display = challengeCompleted[1] ? '' : 'none';
+  // infinity tab: show after first big crunch
+  infinityTab.style.display = hasInfinitied ? '' : 'none';
+  const autoUpgEl = document.getElementById('autoUpgrade');
+  if (challengeCompleted[1]) {
+    autoUpgEl.classList.add('active');
+    autoUpgEl.classList.remove('locked');
+    const maxAutobuyLevel = 68;
+    let interval = Math.pow(0.95, autobuyLevel);
+    if (iUpg8Bought) interval /= 2;
+    if (iUpg10Bought) interval /= getPC2SpeedMult();
+    const rate = 1 / interval;
+    document.getElementById('autobuyRate').textContent = autobuyEnabled ? fmt(rate) + '/s' : 'Paused';
+    document.getElementById('autobuyToggle').classList.toggle('on', autobuyEnabled);
+    let detailSuffix = '';
+    if (iUpg8Bought) detailSuffix += ' | IU8: 2x';
+    if (iUpg10Bought) detailSuffix += ' | IU10: 1.1x';
+    document.getElementById('autobuyDetail').textContent = 'Interval: ' + interval.toFixed(3) + 's | Level: ' + autobuyLevel + (autobuyLevel >= maxAutobuyLevel ? ' (MAX)' : '') + detailSuffix;
+    const upgBtn = document.getElementById('autobuyUpgBtn');
+    if (autobuyLevel >= maxAutobuyLevel) {
+      document.getElementById('autobuyCost').textContent = 'MAX';
+      upgBtn.classList.remove('can-buy');
+    } else {
+      const upgCost = Bn(Math.pow(2, autobuyLevel));
+      document.getElementById('autobuyCost').textContent = fmt(upgCost) + ' pp';
+      if (Bgte(prestigePoints, upgCost)) {
+        upgBtn.classList.add('can-buy');
+      } else {
+        upgBtn.classList.remove('can-buy');
+      }
+    }
+  } else {
+    autoUpgEl.classList.remove('active');
+    autoUpgEl.classList.add('locked');
+  }
+  // auto multi-buy render
+  const autoMultiBuyEl = document.getElementById('autoMultiBuy');
+  if (challengeCompleted[1]) {
+    autoMultiBuyEl.style.display = '';
+    autoMultiBuyEl.classList.add('active');
+    const isMaxMultiBuy = autoMultiBuyLevel >= 10;
+    const buyCount = isMaxMultiBuy ? '\u221e' : Math.pow(2, autoMultiBuyLevel);
+    document.getElementById('autoMultiBuyRate').textContent = 'x' + buyCount;
+    document.getElementById('autoMultiBuyDetail').textContent = isMaxMultiBuy ? 'Buys ALL per tick | Level: MAX' : 'Buys ' + buyCount + ' per tick | Level: ' + autoMultiBuyLevel + '/10';
+    const mbBtn = document.getElementById('autoMultiBuyUpgBtn');
+    if (isMaxMultiBuy) {
+      document.getElementById('autoMultiBuyCost').textContent = 'MAX';
+      mbBtn.classList.remove('can-buy');
+    } else {
+      const mbCost = Bpow(Bn(1e50), Math.pow(1.2, autoMultiBuyLevel));
+      document.getElementById('autoMultiBuyCost').textContent = fmt(mbCost) + ' pp';
+      if (Bgte(prestigePoints, mbCost)) {
+        mbBtn.classList.add('can-buy');
+      } else {
+        mbBtn.classList.remove('can-buy');
+      }
+    }
+  } else {
+    autoMultiBuyEl.style.display = 'none';
+  }
+  // auto prestige render
+  if (pUpg6Bought) {
+    autoPrestigeEl.style.display = '';
+    autoPrestigeEl.classList.toggle('active', autoPrestigeEnabled);
+    document.getElementById('autoPrestigeRate').textContent = autoPrestigeEnabled ? 'On' : 'Off';
+    autoPrestigeToggle.classList.toggle('on', autoPrestigeEnabled);
+  } else {
+    autoPrestigeEl.style.display = 'none';
+  }
+  // pp display above prestige box
+  if (Bgt(prestigePoints, Bn(0)) || prestigeUnlocked) {
+    ppDisplayEl.textContent = fmt(Bfloor(prestigePoints)) + ' pp';
+    // center pp-display on prestige box center axis
+    const boxRect = prestigeBox.getBoundingClientRect();
+    const rowRect = prestigeBox.parentElement.getBoundingClientRect();
+    if (boxRect.width > 0) {
+      const boxCenterX = boxRect.left - rowRect.left + boxRect.width / 2;
+      ppDisplayEl.style.left = boxCenterX + 'px';
+      ppDisplayEl.style.transform = 'translateX(-50%)';
+    }
+  } else {
+    ppDisplayEl.textContent = '';
+  }
+  // infinity box on right side of points (like prestige box on left)
+  const infinityBox = document.getElementById('infinityBox');
+  const ipDisplayMain = document.getElementById('ipDisplayMain');
+  if (hasInfinitied) {
+    infinityBox.classList.add('visible');
+    if (breakInfinityUnlocked) {
+      const bipGain = Bmul(getBaseIPGain(), getIPMultiplier());
+      infinityBox.innerHTML = 'BIG CRUNCH<br>+' + Bfmt(bipGain) + ' IP';
+      infinityBox.classList.remove('faded');
+    } else if (points.e > 308 || (points.e === 308 && points.m >= 1.8)) {
+      const preIpGain = Bmul(getBaseIPGain(), getIPMultiplier());
+      infinityBox.innerHTML = 'BIG CRUNCH<br>+' + Bfmt(preIpGain) + ' IP';
+      infinityBox.classList.remove('faded');
+    } else {
+      const target = B(1.8, 308);
+      const remaining = Bsub(target, points);
+      infinityBox.innerHTML = fmt(Bmax(remaining, Bn(0))) + ' pts<br>to infinity';
+      infinityBox.classList.add('faded');
+    }
+    // IP display above infinity box
+    ipDisplayMain.textContent = Bfmt(infinityPoints) + ' IP';
+    const iboxRect = infinityBox.getBoundingClientRect();
+    const irowRect = infinityBox.parentElement.getBoundingClientRect();
+    if (iboxRect.width > 0) {
+      const iboxCenterX = iboxRect.left - irowRect.left + iboxRect.width / 2;
+      ipDisplayMain.style.left = '';
+      ipDisplayMain.style.right = (irowRect.right - iboxRect.right + iboxRect.width / 2) + 'px';
+      ipDisplayMain.style.transform = 'translateX(50%)';
+    }
+  } else {
+    infinityBox.classList.remove('visible');
+    ipDisplayMain.textContent = '';
+  }
+  // prestige page
+  prestigePagePPEl.textContent = fmt(Bfloor(prestigePoints));
+  if (Bgt(totalPrestigePoints, Bn(0))) {
+    const lnpp = Bln(Badd(totalPrestigePoints, Bn(1)));
+    const ch4E = inChallenge === 3 ? 0.5 : (challengeCompleted[3] ? getPC4Exp() * getChallengePowerMult() : 1);
+    const ppExp2 = Math.max(1 - lnpp / (100 + Math.pow(lnpp, 0.5)), 0.5);
+    const boost = Bpow(Bmul(Bn(3), Bpow(totalPrestigePoints, ppExp2)), ch4E);
+    prestigePageBoostEl.textContent = 'point multiplier: x' + fmt(boost);
+  } else {
+    prestigePageBoostEl.textContent = 'point multiplier: x1';
+  }
+  // pp exponent info display
+  const ppExpInfoEl = document.getElementById('ppExpInfo');
+  const curExp = ppBaseExp();
+  ppExpInfoEl.style.color = '#888';
+  ppExpInfoEl.textContent = 'pp exponent base: ' + curExp.toFixed(4);
+  // prestige upgrade 1
+  if (pUpg1Bought) {
+    pUpg1El.classList.add('bought');
+    pUpg1El.classList.remove('can-buy');
+  } else if (Bgte(prestigePoints, Bn(1))) {
+    pUpg1El.classList.add('can-buy');
+    pUpg1El.classList.remove('bought');
+  } else {
+    pUpg1El.classList.remove('can-buy');
+    pUpg1El.classList.remove('bought');
+  }
+  // prestige upgrade 2
+  if (pUpg2Bought) {
+    pUpg2El.classList.add('bought');
+    pUpg2El.classList.remove('can-buy');
+  } else if (Bgte(prestigePoints, Bn(2))) {
+    pUpg2El.classList.add('can-buy');
+    pUpg2El.classList.remove('bought');
+  } else {
+    pUpg2El.classList.remove('can-buy');
+    pUpg2El.classList.remove('bought');
+  }
+  // prestige upgrade 3
+  if (pUpg3Bought) {
+    pUpg3El.classList.add('bought');
+    pUpg3El.classList.remove('can-buy');
+  } else if (Bgte(prestigePoints, Bn(5))) {
+    pUpg3El.classList.add('can-buy');
+    pUpg3El.classList.remove('bought');
+  } else {
+    pUpg3El.classList.remove('can-buy');
+    pUpg3El.classList.remove('bought');
+  }
+  // prestige upgrade 4 (unlocked after PC4)
+  pUpg4Row.style.display = challengeCompleted[3] ? 'flex' : 'none';
+  if (challengeCompleted[3]) {
+    if (pUpg4Bought) {
+      pUpg4El.classList.add('bought');
+      pUpg4El.classList.remove('can-buy');
+    } else if (Bgte(prestigePoints, Bn(1e8))) {
+      pUpg4El.classList.add('can-buy');
+      pUpg4El.classList.remove('bought');
+    } else {
+      pUpg4El.classList.remove('can-buy');
+      pUpg4El.classList.remove('bought');
+    }
+    // prestige upgrade 5
+    if (pUpg5Bought) {
+      pUpg5El.classList.add('bought');
+      pUpg5El.classList.remove('can-buy');
+    } else if (Bgte(prestigePoints, Bn(1e14))) {
+      pUpg5El.classList.add('can-buy');
+      pUpg5El.classList.remove('bought');
+    } else {
+      pUpg5El.classList.remove('can-buy');
+      pUpg5El.classList.remove('bought');
+    }
+    // prestige upgrade 6
+    if (pUpg6Bought) {
+      pUpg6El.classList.add('bought');
+      pUpg6El.classList.remove('can-buy');
+    } else if (Bgte(prestigePoints, Bn(1e20))) {
+      pUpg6El.classList.add('can-buy');
+      pUpg6El.classList.remove('bought');
+    } else {
+      pUpg6El.classList.remove('can-buy');
+      pUpg6El.classList.remove('bought');
+    }
+  }
+  // prestige upgrade effect displays
+  const eff1El = document.getElementById('pUpg1Eff');
+  const eff2El = document.getElementById('pUpg2Eff');
+  const eff3El = document.getElementById('pUpg3Eff');
+  const eff4El = document.getElementById('pUpg4Eff');
+  const eff5El = document.getElementById('pUpg5Eff');
+  const eff6El = document.getElementById('pUpg6Eff');
+  if (pUpg1Bought && Bgt(points, Bn(1))) {
+    eff1El.textContent = 'x' + fmt(Math.pow(Bln(points), 0.5));
+  } else {
+    eff1El.textContent = pUpg1Bought ? 'x1' : '';
+  }
+  if (pUpg2Bought) {
+    const totalSec = (Date.now() - playStartTime) / 1000;
+    eff2El.textContent = totalSec > 1 ? 'x' + fmt(Math.pow(Math.log(totalSec), 0.3)) : 'x1';
+  } else {
+    eff2El.textContent = '';
+  }
+  if (pUpg3Bought && Bgt(points, Bn(1))) {
+    eff3El.textContent = 'x' + fmt(Math.pow(Bln(points), 0.1));
+  } else {
+    eff3El.textContent = pUpg3Bought ? 'x1' : '';
+  }
+  if (pUpg4Bought) {
+    eff4El.textContent = 'power: ' + getMultPower().toFixed(4);
+  } else {
+    eff4El.textContent = '';
+  }
+  if (pUpg5Bought) {
+    eff5El.textContent = 'base exp: ' + ppBaseExp().toFixed(4);
+  } else {
+    eff5El.textContent = '';
+  }
+  if (pUpg6Bought) {
+    eff6El.textContent = 'ch power: x' + fmt(getChallengePowerMult());
+  } else {
+    eff6El.textContent = '';
+  }
+  // stat page
+  const ppPerMin = Bn(getPrestigeRate() * 60);
+  if (Bgt(ppPerMin, bestPPM)) bestPPM = B(ppPerMin);
+  statPointsEl.textContent = fmt(points);
+  statRunTotalEl.textContent = fmt(runTotalPoints);
+  statPlaytimeEl.textContent = fmtTime(Date.now() - playStartTime);
+  statRunTimeEl.textContent = fmtTime(Date.now() - runStartTime);
+  statPPEl.textContent = fmt(Bfloor(prestigePoints));
+  statTotalPPEl.textContent = fmt(Bfloor(totalPrestigePoints));
+  statBestPPMEl.textContent = fmt(bestPPM);
+  statPrestigeCountEl.textContent = prestigeCount;
+  // infinity page + stat box
+  if (hasInfinitied) {
+    const infTime = Date.now() - infinityStartTime;
+    const bestInfStr = bestInfinityTime < Infinity ? fmtTime(bestInfinityTime) : '-';
+    document.getElementById('ipDisplay').textContent = Bfmt(infinityPoints);
+    // IP boost display
+    if (Bgt(infinityPoints, Bn(0))) {
+      const ipExp = 2 - Math.min(Bln(infinityPoints) / 100, 1);
+      const ptBoost = Bpow(Badd(infinityPoints, Bn(1)), ipExp);
+      const ppBoost = Bpow(Badd(infinityPoints, Bn(1)), ipExp / 2);
+      document.getElementById('ipPointBoost').textContent = 'Point boost: x' + Bfmt(ptBoost);
+      document.getElementById('ipPPBoost').textContent = 'PP boost: x' + Bfmt(ppBoost) + (ipMultLevel > 0 ? ' | IP mult: x' + Bfmt(getIPMultiplier()) : '');
+    } else {
+      document.getElementById('ipPointBoost').textContent = '';
+      document.getElementById('ipPPBoost').textContent = '';
+    }
+    const statInfBox = document.getElementById('statInfinityBox');
+    statInfBox.style.display = '';
+    document.getElementById('statIP2').textContent = Bfmt(infinityPoints);
+    document.getElementById('statInfResets2').textContent = infinityResets;
+    document.getElementById('statInfTime2').textContent = fmtTime(infTime);
+    document.getElementById('statBestInfTime2').textContent = bestInfStr;
+    document.getElementById('statBestIPM2').textContent = Bfmt(bestIPM);
+  }
+  // Infinity upgrade can-buy / bought class toggling
+  const iUpgData = [
+    {el: document.getElementById('iUpg1'), bought: iUpg1Bought, cost: 1, effEl: document.getElementById('iUpg1Eff')},
+    {el: document.getElementById('iUpg2'), bought: iUpg2Bought, cost: 1, effEl: document.getElementById('iUpg2Eff')},
+    {el: document.getElementById('iUpg3'), bought: iUpg3Bought, cost: 2, effEl: document.getElementById('iUpg3Eff')},
+    {el: document.getElementById('iUpg4'), bought: iUpg4Bought, cost: 3, effEl: document.getElementById('iUpg4Eff')},
+    {el: document.getElementById('iUpg5'), bought: iUpg5Bought, cost: 1, effEl: document.getElementById('iUpg5Eff')},
+    {el: document.getElementById('iUpg6'), bought: iUpg6Bought, cost: 1, effEl: document.getElementById('iUpg6Eff')},
+    {el: document.getElementById('iUpg7'), bought: iUpg7Bought, cost: 3, effEl: document.getElementById('iUpg7Eff')},
+    {el: document.getElementById('iUpg8'), bought: iUpg8Bought, cost: 5, effEl: document.getElementById('iUpg8Eff')},
+    {el: document.getElementById('iUpg9'), bought: iUpg9Bought, cost: 3, effEl: document.getElementById('iUpg9Eff')},
+    {el: document.getElementById('iUpg10'), bought: iUpg10Bought, cost: 5, effEl: document.getElementById('iUpg10Eff')},
+    {el: document.getElementById('iUpg11'), bought: iUpg11Bought, cost: 7, effEl: document.getElementById('iUpg11Eff')},
+    {el: document.getElementById('iUpg12'), bought: iUpg12Bought, cost: 10, effEl: document.getElementById('iUpg12Eff')},
+    {el: document.getElementById('iUpg13'), bought: iUpg13Bought, cost: 15, effEl: document.getElementById('iUpg13Eff')},
+    {el: document.getElementById('iUpg14'), bought: iUpg14Bought, cost: 30, effEl: document.getElementById('iUpg14Eff')},
+    {el: document.getElementById('iUpg15'), bought: iUpg15Bought, cost: 60, effEl: document.getElementById('iUpg15Eff')},
+    {el: document.getElementById('iUpg16'), bought: iUpg16Bought, cost: 150, effEl: document.getElementById('iUpg16Eff')}
+  ];
+  for (const iu of iUpgData) {
+    if (iu.bought) {
+      iu.el.classList.add('bought');
+      iu.el.classList.remove('can-buy');
+    } else if (Bgte(infinityPoints, Bn(iu.cost))) {
+      iu.el.classList.add('can-buy');
+      iu.el.classList.remove('bought');
+    } else {
+      iu.el.classList.remove('can-buy');
+      iu.el.classList.remove('bought');
+    }
+  }
+  // Infinity upgrade effect displays
+  if (iUpg1Bought) {
+    const totalSec = (Date.now() - playStartTime) / 1000;
+    iUpgData[0].effEl.textContent = totalSec > 10 ? 'x' + fmt(Math.log10(totalSec)) : 'x1';
+  } else { iUpgData[0].effEl.textContent = ''; }
+  if (iUpg2Bought) {
+    iUpgData[1].effEl.textContent = 'base: ' + getMultPower().toFixed(4);
+  } else { iUpgData[1].effEl.textContent = ''; }
+  if (iUpg3Bought && Bgt(totalIPEarned, Bn(1))) {
+    const log2tip = Blog10(totalIPEarned) / Math.log10(2);
+    iUpgData[2].effEl.textContent = 'x' + fmt(log2tip);
+  } else { iUpgData[2].effEl.textContent = iUpg3Bought ? 'x1' : ''; }
+  if (iUpg4Bought) {
+    iUpgData[3].effEl.textContent = Bgt(bestIPM, Bn(0)) ? Bfmt(Bmul(bestIPM, Bn(0.25))) + ' IP/min' : 'waiting...';
+  } else { iUpgData[3].effEl.textContent = ''; }
+  // IU5 effect: pp * ln(IP)
+  if (iUpg5Bought && Bgt(infinityPoints, Bn(1))) {
+    iUpgData[4].effEl.textContent = 'x' + fmt(Bln(infinityPoints));
+  } else { iUpgData[4].effEl.textContent = iUpg5Bought ? 'x1' : ''; }
+  // IU6 effect: pp formula power +0.03
+  if (iUpg6Bought) {
+    iUpgData[5].effEl.textContent = 'base exp: ' + ppBaseExp().toFixed(4);
+  } else { iUpgData[5].effEl.textContent = ''; }
+  // IU7 effect: pp * log2(log2(sec)^5)
+  if (iUpg7Bought) {
+    const totalSec7 = (Date.now() - playStartTime) / 1000;
+    if (totalSec7 > 4) {
+      const inner7 = Math.pow(Math.log2(totalSec7), 5);
+      iUpgData[6].effEl.textContent = inner7 > 1 ? 'x' + fmt(Math.log2(inner7)) : 'x1';
+    } else { iUpgData[6].effEl.textContent = 'x1'; }
+  } else { iUpgData[6].effEl.textContent = ''; }
+  // IU8 effect: autobuy 2x faster & 2x more
+  if (iUpg8Bought) {
+    iUpgData[7].effEl.textContent = 'active';
+  } else { iUpgData[7].effEl.textContent = ''; }
+  // IU9 effect: PC1 reward *1.1 + keep
+  if (iUpg9Bought) {
+    iUpgData[8].effEl.textContent = '^' + getPC1Exp().toFixed(2) + ' | kept';
+  } else { iUpgData[8].effEl.textContent = ''; }
+  // IU10 effect: PC2 reward *1.1 + keep + max autobuy
+  if (iUpg10Bought) {
+    iUpgData[9].effEl.textContent = getPC2SpeedMult().toFixed(1) + 'x speed | kept | autobuy max';
+  } else { iUpgData[9].effEl.textContent = ''; }
+  // IU11 effect: PC3 reward *1.1 + keep
+  if (iUpg11Bought) {
+    iUpgData[10].effEl.textContent = getPC3ScalingMult().toFixed(3) + 'x | kept';
+  } else { iUpgData[10].effEl.textContent = ''; }
+  // IU12 effect: PC4 reward *1.1 + keep
+  if (iUpg12Bought) {
+    iUpgData[11].effEl.textContent = '^' + getPC4Exp().toFixed(2) + ' | kept';
+  } else { iUpgData[11].effEl.textContent = ''; }
+  // IU13 effect
+  if (iUpg13Bought) {
+    iUpgData[12].effEl.textContent = '+100 pts';
+  } else { iUpgData[12].effEl.textContent = ''; }
+  // IU14 effect
+  if (iUpg14Bought) {
+    iUpgData[13].effEl.textContent = '+1000 pts';
+  } else { iUpgData[13].effEl.textContent = ''; }
+  // IU15 effect
+  if (iUpg15Bought) {
+    iUpgData[14].effEl.textContent = '+5000 pts, PU1-3';
+  } else { iUpgData[14].effEl.textContent = ''; }
+  // IU16 effect
+  if (iUpg16Bought) {
+    iUpgData[15].effEl.textContent = '9999 pts, all PU';
+  } else { iUpgData[15].effEl.textContent = ''; }
+  // IP Multiplier section (unlocked by IU16)
+  const ipMultSection = document.getElementById('ipMultSection');
+  if (iUpg16Bought) {
+    ipMultSection.style.display = '';
+    document.getElementById('ipMultDisplay').textContent = 'x' + Bfmt(getIPMultiplier()) + ' IP';
+    const nextCost = getIPMultCost();
+    document.getElementById('ipMultCost').textContent = 'Cost: ' + Bfmt(nextCost) + ' IP';
+    document.getElementById('ipMultNext').textContent = 'Next: x' + Bfmt(Bmul(getIPMultiplier(), Bn(2))) + ' IP';
+    const ipMultUpgEl = document.getElementById('ipMultUpg');
+    if (Bgte(infinityPoints, nextCost)) {
+      ipMultUpgEl.classList.add('can-buy');
+    } else {
+      ipMultUpgEl.classList.remove('can-buy');
+    }
+  } else {
+    ipMultSection.style.display = 'none';
+  }
+  // Auto Infinity render
+  const autoInfEl = document.getElementById('autoInfinity');
+  if (iUpg16Bought) {
+    autoInfEl.style.display = '';
+    autoInfEl.classList.toggle('active', autoInfinityEnabled);
+    document.getElementById('autoInfinityRate').textContent = autoInfinityEnabled ? 'On' : 'Off';
+    document.getElementById('autoInfinityToggle').classList.toggle('on', autoInfinityEnabled);
+    // upgrade info
+    const interval = getAutoInfInterval();
+    const cost = getAutoInfCost();
+    const intervalStr = interval >= 1 ? interval.toFixed(1) + 's' : interval.toFixed(3) + 's';
+    const btn = document.getElementById('autoInfUpgBtn');
+    const info = document.getElementById('autoInfUpgInfo');
+    if (breakInfinityUnlocked) {
+      info.textContent = 'Lv ' + autoInfinityLevel + ' | Interval: ' + intervalStr + ' | BROKEN';
+      btn.style.display = 'none';
+    } else {
+      info.textContent = 'Lv ' + autoInfinityLevel + ' | Interval: ' + intervalStr + ' | Cost: ' + Bfmt(cost) + ' IP';
+      btn.style.display = '';
+      if (Bgte(infinityPoints, cost)) {
+        btn.classList.add('can-buy');
+        btn.classList.remove('bought');
+      } else {
+        btn.classList.remove('can-buy');
+      }
+    }
+    document.getElementById('autoInfinityDesc').textContent = autoInfinityLevel > 0
+      ? 'Auto-crunches every ' + intervalStr + ' when at 1.80e308.'
+      : 'Buy upgrades to reduce crunch interval. Starts at 150s.';
+  } else {
+    autoInfEl.style.display = 'none';
+  }
+  // Break Infinity sub-tab: visible once IU16 (auto infinity) is bought
+  document.getElementById('breakInfSubTab').style.display = iUpg16Bought ? '' : 'none';
+  if (iUpg16Bought) {
+    const breakBtn = document.getElementById('breakInfBtn');
+    if (breakInfinityUnlocked) {
+      if (breakBtn) breakBtn.style.display = 'none';
+      const bipGain = Bmul(getBaseIPGain(), getIPMultiplier());
+      document.getElementById('breakInfIPGain').textContent = Bfmt(bipGain) + ' IP';
+      document.getElementById('breakInfStatus').style.display = '';
+      // BIU1 render
+      const biu1El = document.getElementById('biUpg1');
+      if (biUpg1Bought) {
+        biu1El.classList.add('bought');
+        biu1El.classList.remove('can-buy');
+      } else if (Bgte(infinityPoints, Bn(1000))) {
+        biu1El.classList.add('can-buy');
+        biu1El.classList.remove('bought');
+      } else {
+        biu1El.classList.remove('can-buy', 'bought');
+      }
+      const biu1PLog = Blog10(Bmax(points, Bn(1)));
+      const biu1Mult = biu1PLog > 1 ? 1 + Math.log10(biu1PLog) / 50 : 1;
+      document.getElementById('biUpg1Eff').textContent = biUpg1Bought ? 'x' + biu1Mult.toFixed(4) + ' [log=' + biu1PLog.toFixed(1) + ']' : '';
+    } else {
+      if (breakBtn) breakBtn.style.display = '';
+      document.getElementById('breakInfStatus').style.display = 'none';
+    }
+  }
+  // challenge sub-tab: only show after 10000 total pp
+  challengeSubTab.style.display = Bgte(totalPrestigePoints, Bn(10000)) ? '' : 'none';
+  // challenge UI
+  renderChallengeUI();
+  // progress bars
+  updateProgressBars();
+}
+
+upgEl.addEventListener('click', () => {
+  if (inChallenge === 1) return;
+  const cost = getCost();
+  if (Blt(points, cost)) return;
+  points = Bsub(points, cost);
+  bought++;
+  multiplier = Bmul(multiplier, Bn(getMultPower()));
+  render();
+});
+
+pUpg1El.addEventListener('click', () => {
+  if (pUpg1Bought || Blt(prestigePoints, Bn(1))) return;
+  prestigePoints = Bsub(prestigePoints, Bn(1));
+  pUpg1Bought = true;
+  render();
+});
+
+pUpg2El.addEventListener('click', () => {
+  if (pUpg2Bought || Blt(prestigePoints, Bn(2))) return;
+  prestigePoints = Bsub(prestigePoints, Bn(2));
+  pUpg2Bought = true;
+  render();
+});
+
+pUpg3El.addEventListener('click', () => {
+  if (pUpg3Bought || Blt(prestigePoints, Bn(5))) return;
+  prestigePoints = Bsub(prestigePoints, Bn(5));
+  pUpg3Bought = true;
+  render();
+});
+
+pUpg4El.addEventListener('click', () => {
+  if (pUpg4Bought || Blt(prestigePoints, Bn(1e8))) return;
+  prestigePoints = Bsub(prestigePoints, Bn(1e8));
+  pUpg4Bought = true;
+  render();
+});
+
+pUpg5El.addEventListener('click', () => {
+  if (pUpg5Bought || Blt(prestigePoints, Bn(1e14))) return;
+  prestigePoints = Bsub(prestigePoints, Bn(1e14));
+  pUpg5Bought = true;
+  render();
+});
+
+pUpg6El.addEventListener('click', () => {
+  if (pUpg6Bought || Blt(prestigePoints, Bn(1e20))) return;
+  prestigePoints = Bsub(prestigePoints, Bn(1e20));
+  pUpg6Bought = true;
+  render();
+});
+
+prestigeBox.addEventListener('click', () => {
+  // challenge completion via click
+  if (inChallenge >= 0 && !challengeCompleted[inChallenge] && Bgte(points, Bn(challengeData[inChallenge].target))) {
+    challengeCompleted[inChallenge] = true;
+    inChallenge = -1;
+    points = Bn(0);
+    multiplier = Bn(1);
+    bought = 0;
+    prestigeUnlocked = false;
+    runStartTime = Date.now();
+    runTotalPoints = Bn(0);
+    applyStartBonuses();
+    renderChallengeUI();
+    render();
+    return;
+  }
+  // in challenge but target not reached - do nothing
+  if (inChallenge >= 0) return;
+  // normal prestige
+  const pp = Bfloor(getPrestigePoints());
+  if (Blt(pp, Bn(1))) return;
+  function doPrestige() {
+    totalPrestigePoints = Badd(totalPrestigePoints, pp);
+    prestigePoints = Badd(prestigePoints, pp);
+    prestigeCount++;
+    hasPrestiged = true;
+    points = Bn(0);
+    multiplier = Bn(1);
+    bought = 0;
+    prestigeUnlocked = false;
+    runStartTime = Date.now();
+    runTotalPoints = Bn(0);
+    applyStartBonuses();
+    render();
+  }
+  if (confirmPrestige) {
+    gameConfirm('Prestige for ' + fmt(pp) + ' prestige points? Points and upgrades will be reset.', doPrestige);
+  } else {
+    doPrestige();
+  }
+});
+
+document.getElementById('infinityBox').addEventListener('click', () => {
+  if (!(points.e > 308 || (points.e === 308 && points.m >= 1.8))) return;
+  // Trigger Big Crunch (same as overlay click)
+  bigCrunchOverlay.click();
+});
+
+bigCrunchOverlay.addEventListener('click', () => {
+  // Track infinity time and best IP/min
+  const infTime = Date.now() - infinityStartTime;
+  if (infTime < bestInfinityTime) bestInfinityTime = infTime;
+  const ipGainMult = getIPMultiplier();
+  const ipGained = Bmul(getBaseIPGain(), ipGainMult);
+  infinityPoints = Badd(infinityPoints, ipGained);
+  infinityResets++;
+  totalIPEarned = Badd(totalIPEarned, ipGained);
+  hasInfinitied = true;
+  const infMin = infTime / 60000;
+  if (infMin > 0) {
+    const ipm = Bdiv(ipGained, Bn(infMin));
+    if (Bgt(ipm, bestIPM)) bestIPM = B(ipm);
+  }
+  // Reset everything except playStartTime, infinityPoints, hasInfinitied, infinity stats, gameSpeed, confirmPrestige
+  points = Bn(0);
+  multiplier = Bn(1);
+  bought = 0;
+  prestigeUnlocked = false;
+  prestigePoints = Bn(0);
+  totalPrestigePoints = Bn(0);
+  hasPrestiged = true;
+  prestigeBoxEverShown = false;
+  pUpg1Bought = false;
+  pUpg2Bought = false;
+  pUpg3Bought = false;
+  pUpg4Bought = false;
+  pUpg5Bought = false;
+  pUpg6Bought = false;
+  challengeCompleted = [
+    iUpg9Bought ? true : false,
+    iUpg10Bought ? true : false,
+    iUpg11Bought ? true : false,
+    iUpg12Bought ? true : false
+  ];
+  inChallenge = -1;
+  selectedChallenge = -1;
+  autobuyLevel = iUpg10Bought ? 68 : 0;
+  autobuyEnabled = true;
+  autoPrestigeEnabled = false;
+  bestPPM = Bn(0);
+  prestigeCount = 0;
+  runStartTime = Date.now();
+  infinityStartTime = Date.now();
+  runTotalPoints = Bn(0);
+  autobuyTimer = 0;
+  autoInfTimer = 0;
+  applyStartBonuses();
+  prestigeBox.classList.remove('visible');
+  prestigeBox.classList.remove('faded');
+  prestigeBox.innerHTML = '';
+  bigCrunchOverlay.classList.remove('visible');
+  // Switch to infinity tab
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  infinityTab.classList.add('active');
+  document.getElementById('page-infinity').classList.add('active');
+  renderChallengeUI();
+  render();
+});
+
+let gameFPS = 20;
+let tickInterval = setInterval(tick, 1000 / gameFPS);
+
+let autobuyTimer = 0;
+let autoInfTimer = 0;
+
+function tick() {
+  const pps = getPPS();
+  const gain = Bdiv(Bmul(pps, Bn(gameSpeed)), Bn(gameFPS));
+  points = Badd(points, gain);
+  runTotalPoints = Badd(runTotalPoints, gain);
+  // Check for Big Crunch availability (only if Break Infinity not unlocked and auto infinity not active)
+  if (!breakInfinityUnlocked && (points.e > 308 || (points.e === 308 && points.m >= 1.8))) {
+    if (!(iUpg16Bought && autoInfinityEnabled && autoInfinityLevel > 0)) {
+      bigCrunchOverlay.classList.add('visible');
+      render();
+      return;
+    }
+  }
+  // autobuy from PC2 reward: interval = 0.95^level seconds
+  if (challengeCompleted[1] && autobuyEnabled) {
+    let interval = Math.pow(0.95, autobuyLevel);
+    if (iUpg8Bought) interval /= 2; // IU8: 2x faster
+    if (iUpg10Bought) interval /= getPC2SpeedMult(); // IU10: PC2 reward *1.1
+    autobuyTimer += gameSpeed / gameFPS;
+    while (autobuyTimer >= interval) {
+      autobuyTimer -= interval;
+      let maxBuys = autoMultiBuyLevel >= 10 ? 1e9 : Math.pow(2, autoMultiBuyLevel);
+      if (iUpg8Bought) maxBuys *= 2; // IU8: 2x more
+      for (let i = 0; i < maxBuys; i++) {
+        const cost = getCost();
+        if (Bgte(points, cost)) {
+          points = Bsub(points, cost);
+          bought++;
+          multiplier = Bmul(multiplier, Bn(getMultPower()));
+        } else break;
+      }
+    }
+  }
+  // auto prestige from pUpg6
+  if (pUpg6Bought && autoPrestigeEnabled && inChallenge < 0) {
+    const pp = Bfloor(getPrestigePoints());
+    if (Bgte(pp, Bn(1))) {
+      totalPrestigePoints = Badd(totalPrestigePoints, pp);
+      prestigePoints = Badd(prestigePoints, pp);
+      prestigeCount++;
+      hasPrestiged = true;
+      points = Bn(0);
+      multiplier = Bn(1);
+      bought = 0;
+      prestigeUnlocked = false;
+      runStartTime = Date.now();
+      runTotalPoints = Bn(0);
+      applyStartBonuses();
+    }
+  }
+  // IU4: passive IP gain — 25% of best IP/min (affected by IP multiplier)
+  if (iUpg4Bought && Bgt(bestIPM, Bn(0))) {
+    const ipGain = Bdiv(Bmul(Bmul(bestIPM, Bn(0.25)), Bmul(getIPMultiplier(), Bn(gameSpeed))), Bn(gameFPS * 60));
+    infinityPoints = Badd(infinityPoints, ipGain);
+    totalIPEarned = Badd(totalIPEarned, ipGain);
+  }
+  // Auto Infinity (IU16) — timer-based, interval = 150/2.5^level
+  if (iUpg16Bought && autoInfinityEnabled && autoInfinityLevel > 0) {
+    autoInfTimer += gameSpeed / gameFPS;
+    const autoInfInterval = getAutoInfInterval();
+    if (autoInfTimer >= autoInfInterval) {
+      autoInfTimer -= autoInfInterval;
+      if (points.e > 308 || (points.e === 308 && points.m >= 1.8)) {
+        // perform Big Crunch automatically
+        const infTime = Date.now() - infinityStartTime;
+        if (infTime < bestInfinityTime) bestInfinityTime = infTime;
+        const autoIpGain = Bmul(getBaseIPGain(), getIPMultiplier());
+        infinityPoints = Badd(infinityPoints, autoIpGain);
+        infinityResets++;
+        totalIPEarned = Badd(totalIPEarned, autoIpGain);
+        hasInfinitied = true;
+        const infMin = infTime / 60000;
+        if (infMin > 0) {
+          const ipm = Bdiv(autoIpGain, Bn(infMin));
+          if (Bgt(ipm, bestIPM)) bestIPM = B(ipm);
+        }
+        points = Bn(0);
+        multiplier = Bn(1);
+        bought = 0;
+        prestigeUnlocked = false;
+        prestigePoints = Bn(0);
+        totalPrestigePoints = Bn(0);
+        hasPrestiged = true;
+        prestigeBoxEverShown = false;
+        pUpg1Bought = false; pUpg2Bought = false; pUpg3Bought = false;
+        pUpg4Bought = false; pUpg5Bought = false; pUpg6Bought = false;
+        challengeCompleted = [
+          iUpg9Bought, iUpg10Bought, iUpg11Bought, iUpg12Bought
+        ];
+        inChallenge = -1;
+        selectedChallenge = -1;
+        autobuyLevel = iUpg10Bought ? 68 : 0;
+        autobuyEnabled = true;
+        autoPrestigeEnabled = false;
+        bestPPM = Bn(0);
+        prestigeCount = 0;
+        runStartTime = Date.now();
+        infinityStartTime = Date.now();
+        runTotalPoints = Bn(0);
+        autobuyTimer = 0;
+        autoInfTimer = 0;
+        applyStartBonuses();
+        bigCrunchOverlay.classList.remove('visible');
+      }
+    }
+  }
+  render();
+}
+
+function setFPS(newFPS) {
+  gameFPS = newFPS;
+  clearInterval(tickInterval);
+  tickInterval = setInterval(tick, 1000 / gameFPS);
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('page-' + tab.dataset.tab).classList.add('active');
+    // dev sequence: main-stat-settings-stat-main-settings
+    const devSeq = ['main','stat','settings','stat','main','settings'];
+    devTabHistory.push(tab.dataset.tab);
+    if (devTabHistory.length > devSeq.length) devTabHistory.shift();
+    if (devTabHistory.length === devSeq.length && devTabHistory.every((v,i) => v === devSeq[i])) {
+      devPanel.classList.toggle('open');
+      devTabHistory = [];
+    }
+  });
+});
+
+// DEV panel: opened by tab sequence main-stat-settings-stat-main-settings
+const devPanel = document.getElementById('devPanel');
+let devTabHistory = [];
+
+document.getElementById('devApply').addEventListener('click', () => {
+  const pVal = document.getElementById('devPoints').value;
+  const sVal = document.getElementById('devSpeed').value;
+  const ppVal = document.getElementById('devPP').value;
+  const pcVal = document.getElementById('devPrestigeCount').value;
+  if (pVal !== '') points = Bn(parseFloat(pVal));
+  if (sVal !== '' && parseFloat(sVal) > 0) gameSpeed = parseFloat(sVal);
+  if (ppVal !== '') {
+    const v = Bn(parseFloat(ppVal));
+    const diff = Bsub(v, prestigePoints);
+    prestigePoints = v;
+    if (Bgt(diff, Bn(0))) totalPrestigePoints = Badd(totalPrestigePoints, diff);
+  }
+  if (pcVal !== '' && parseInt(pcVal) >= 0) prestigeCount = parseInt(pcVal);
+  const ipVal = document.getElementById('devIP').value;
+  if (ipVal !== '' && parseInt(ipVal) >= 0) {
+    infinityPoints = Bn(parseInt(ipVal));
+    if (Bgt(infinityPoints, Bn(0))) hasInfinitied = true;
+  }
+  render();
+});
+
+document.getElementById('devCompletePC').addEventListener('click', () => {
+  challengeCompleted = [true, true, true, true];
+  if (inChallenge >= 0) inChallenge = -1;
+  renderChallengeUI();
+  render();
+});
+
+document.getElementById('devBuyAllIU').addEventListener('click', () => {
+  iUpg1Bought = true; iUpg2Bought = true; iUpg3Bought = true; iUpg4Bought = true;
+  iUpg5Bought = true; iUpg6Bought = true; iUpg7Bought = true; iUpg8Bought = true;
+  iUpg9Bought = true; iUpg10Bought = true; iUpg11Bought = true; iUpg12Bought = true;
+  iUpg13Bought = true; iUpg14Bought = true; iUpg15Bought = true; iUpg16Bought = true;
+  render();
+});
+
+document.getElementById('devMaxAuto').addEventListener('click', () => {
+  autobuyLevel = 68;
+  autoMultiBuyLevel = 10;
+  render();
+});
+
+const fpsSlider = document.getElementById('fpsSlider');
+const fpsValueEl = document.getElementById('fpsValue');
+fpsSlider.addEventListener('input', () => {
+  const fps = parseInt(fpsSlider.value);
+  fpsValueEl.textContent = fps + ' FPS';
+  setFPS(fps);
+});
+
+const confirmToggle = document.getElementById('confirmPrestigeToggle');
+confirmToggle.addEventListener('click', () => {
+  confirmPrestige = !confirmPrestige;
+  confirmToggle.classList.toggle('on', confirmPrestige);
+});
+
+document.getElementById('autobuyUpgBtn').addEventListener('click', () => {
+  if (!challengeCompleted[1]) return;
+  if (autobuyLevel >= 68) return;
+  const cost = Bn(Math.pow(2, autobuyLevel));
+  if (Blt(prestigePoints, cost)) return;
+  prestigePoints = Bsub(prestigePoints, cost);
+  autobuyLevel++;
+  render();
+});
+
+document.getElementById('autobuyToggle').addEventListener('click', () => {
+  autobuyEnabled = !autobuyEnabled;
+  document.getElementById('autobuyToggle').classList.toggle('on', autobuyEnabled);
+  render();
+});
+
+autoPrestigeToggle.addEventListener('click', () => {
+  autoPrestigeEnabled = !autoPrestigeEnabled;
+  autoPrestigeToggle.classList.toggle('on', autoPrestigeEnabled);
+  render();
+});
+
+// === Infinity upgrade click handlers ===
+document.getElementById('iUpg1').addEventListener('click', () => {
+  if (iUpg1Bought || Blt(infinityPoints, Bn(1))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(1));
+  iUpg1Bought = true;
+  render();
+});
+
+document.getElementById('iUpg2').addEventListener('click', () => {
+  if (iUpg2Bought || Blt(infinityPoints, Bn(1))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(1));
+  iUpg2Bought = true;
+  render();
+});
+
+document.getElementById('iUpg3').addEventListener('click', () => {
+  if (iUpg3Bought || Blt(infinityPoints, Bn(2))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(2));
+  iUpg3Bought = true;
+  render();
+});
+
+document.getElementById('iUpg4').addEventListener('click', () => {
+  if (iUpg4Bought || Blt(infinityPoints, Bn(3))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(3));
+  iUpg4Bought = true;
+  render();
+});
+
+document.getElementById('iUpg5').addEventListener('click', () => {
+  if (iUpg5Bought || Blt(infinityPoints, Bn(1))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(1));
+  iUpg5Bought = true;
+  render();
+});
+
+document.getElementById('iUpg6').addEventListener('click', () => {
+  if (iUpg6Bought || Blt(infinityPoints, Bn(1))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(1));
+  iUpg6Bought = true;
+  render();
+});
+
+document.getElementById('iUpg7').addEventListener('click', () => {
+  if (iUpg7Bought || Blt(infinityPoints, Bn(3))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(3));
+  iUpg7Bought = true;
+  render();
+});
+
+document.getElementById('iUpg8').addEventListener('click', () => {
+  if (iUpg8Bought || Blt(infinityPoints, Bn(5))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(5));
+  iUpg8Bought = true;
+  render();
+});
+
+document.getElementById('iUpg9').addEventListener('click', () => {
+  if (iUpg9Bought || Blt(infinityPoints, Bn(3))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(3));
+  iUpg9Bought = true;
+  render();
+});
+
+document.getElementById('iUpg10').addEventListener('click', () => {
+  if (iUpg10Bought || Blt(infinityPoints, Bn(5))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(5));
+  iUpg10Bought = true;
+  render();
+});
+
+document.getElementById('iUpg11').addEventListener('click', () => {
+  if (iUpg11Bought || Blt(infinityPoints, Bn(7))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(7));
+  iUpg11Bought = true;
+  render();
+});
+
+document.getElementById('iUpg12').addEventListener('click', () => {
+  if (iUpg12Bought || Blt(infinityPoints, Bn(10))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(10));
+  iUpg12Bought = true;
+  render();
+});
+
+document.getElementById('iUpg13').addEventListener('click', () => {
+  if (iUpg13Bought || Blt(infinityPoints, Bn(15))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(15));
+  iUpg13Bought = true;
+  render();
+});
+
+document.getElementById('iUpg14').addEventListener('click', () => {
+  if (iUpg14Bought || Blt(infinityPoints, Bn(30))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(30));
+  iUpg14Bought = true;
+  render();
+});
+
+document.getElementById('iUpg15').addEventListener('click', () => {
+  if (iUpg15Bought || Blt(infinityPoints, Bn(60))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(60));
+  iUpg15Bought = true;
+  render();
+});
+
+document.getElementById('iUpg16').addEventListener('click', () => {
+  if (iUpg16Bought || Blt(infinityPoints, Bn(150))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(150));
+  iUpg16Bought = true;
+  render();
+});
+
+document.getElementById('ipMultUpg').addEventListener('click', () => {
+  if (!iUpg16Bought) return;
+  const cost = getIPMultCost();
+  if (Blt(infinityPoints, cost)) return;
+  infinityPoints = Bsub(infinityPoints, cost);
+  ipMultLevel++;
+  render();
+});
+
+document.getElementById('autoInfinityToggle').addEventListener('click', () => {
+  autoInfinityEnabled = !autoInfinityEnabled;
+  document.getElementById('autoInfinityToggle').classList.toggle('on', autoInfinityEnabled);
+  render();
+});
+
+document.getElementById('autoInfUpgBtn').addEventListener('click', () => {
+  if (!iUpg16Bought || breakInfinityUnlocked) return;
+  const cost = getAutoInfCost();
+  if (Blt(infinityPoints, cost)) return;
+  infinityPoints = Bsub(infinityPoints, cost);
+  autoInfinityLevel++;
+  render();
+});
+
+document.getElementById('breakInfBtn').addEventListener('click', () => {
+  if (breakInfinityUnlocked) return;
+  gameConfirm('Break Infinity? Points will be uncapped, but the game changes permanently.', () => {
+    breakInfinityUnlocked = true;
+    bigCrunchOverlay.classList.remove('visible');
+    render();
+  });
+});
+
+document.getElementById('biUpg1').addEventListener('click', () => {
+  if (biUpg1Bought || !breakInfinityUnlocked) return;
+  if (Blt(infinityPoints, Bn(1000))) return;
+  infinityPoints = Bsub(infinityPoints, Bn(1000));
+  biUpg1Bought = true;
+  render();
+});
+
+document.getElementById('autoMultiBuyUpgBtn').addEventListener('click', () => {
+  if (autoMultiBuyLevel >= 10) return;
+  const cost = Bpow(Bn(1e50), Math.pow(1.2, autoMultiBuyLevel));
+  if (Blt(prestigePoints, cost)) return;
+  prestigePoints = Bsub(prestigePoints, cost);
+  autoMultiBuyLevel++;
+  render();
+});
+
+document.getElementById('hardResetBtn').addEventListener('click', () => {
+  gameConfirm('Hard reset? All progress will be lost.', () => {
+    localStorage.removeItem('idleSave');
+    points = Bn(0);
+    multiplier = Bn(1);
+    bought = 0;
+    gameSpeed = 1;
+    prestigeUnlocked = false;
+    prestigePoints = Bn(0);
+    totalPrestigePoints = Bn(0);
+    hasPrestiged = false;
+    prestigeBoxEverShown = false;
+    pUpg1Bought = false;
+    pUpg2Bought = false;
+    pUpg3Bought = false;
+    challengeCompleted = [false,false,false,false];
+    inChallenge = -1;
+    selectedChallenge = -1;
+    runStartTime = Date.now();
+    runTotalPoints = Bn(0);
+    bestPPM = Bn(0);
+    autobuyTimer = 0;
+    autobuyLevel = 0;
+    autobuyEnabled = true;
+    autoMultiBuyLevel = 0;
+    prestigeCount = 0;
+    pUpg4Bought = false;
+    pUpg5Bought = false;
+    pUpg6Bought = false;
+    autoPrestigeEnabled = false;
+    infinityPoints = Bn(0);
+    hasInfinitied = false;
+    infinityResets = 0;
+    infinityStartTime = Date.now();
+    bestInfinityTime = Infinity;
+    bestIPM = Bn(0);
+    iUpg1Bought = false;
+    iUpg2Bought = false;
+    iUpg3Bought = false;
+    iUpg4Bought = false;
+    iUpg5Bought = false;
+    iUpg6Bought = false;
+    iUpg7Bought = false;
+    iUpg8Bought = false;
+    iUpg9Bought = false;
+    iUpg10Bought = false;
+    iUpg11Bought = false;
+    iUpg12Bought = false;
+    iUpg13Bought = false;
+    iUpg14Bought = false;
+    iUpg15Bought = false;
+    iUpg16Bought = false;
+    ipMultLevel = 0;
+    autoInfinityEnabled = false;
+    autoInfinityLevel = 0;
+    breakInfinityUnlocked = false;
+    biUpg1Bought = false;
+    autoInfTimer = 0;
+    totalIPEarned = Bn(0);
+    playStartTime = Date.now();
+    prestigeBox.classList.remove('visible');
+    prestigeBox.classList.remove('faded');
+    prestigeBox.innerHTML = '';
+    bigCrunchOverlay.classList.remove('visible');
+    infinityTab.style.display = 'none';
+    document.getElementById('breakInfSubTab').style.display = 'none';
+    render();
+  }, true);
+});
+
+// === Save / Load system ===
+const saveMsg = document.getElementById('saveMsg');
+function flashSaveMsg(txt, color) {
+  saveMsg.textContent = txt;
+  saveMsg.style.color = color || '#5a8a5a';
+  clearTimeout(flashSaveMsg._t);
+  flashSaveMsg._t = setTimeout(() => { saveMsg.textContent = ''; }, 3000);
+}
+
+function saveBN(bn) {
+  const m = isFinite(bn.m) ? bn.m : 0;
+  const e = isFinite(bn.e) ? bn.e : 0;
+  return {m: m, e: e};
+}
+
+function getSaveObj() {
+  return {
+    v: 9,
+    points: saveBN(points),
+    multiplier: saveBN(multiplier),
+    bought, gameSpeed,
+    prestigeUnlocked, playStartTime,
+    prestigePoints: saveBN(prestigePoints),
+    totalPrestigePoints: saveBN(totalPrestigePoints),
+    hasPrestiged, prestigeBoxEverShown,
+    pUpg1Bought, pUpg2Bought, pUpg3Bought,
+    runStartTime,
+    runTotalPoints: saveBN(runTotalPoints),
+    bestPPM: saveBN(bestPPM),
+    challengeCompleted: challengeCompleted.slice(),
+    inChallenge, selectedChallenge, confirmPrestige,
+    autobuyLevel, autobuyEnabled, autoMultiBuyLevel, prestigeCount,
+    pUpg4Bought, pUpg5Bought, pUpg6Bought,
+    autoPrestigeEnabled,
+    infinityPoints: saveBN(infinityPoints),
+    hasInfinitied,
+    infinityResets,
+    infinityStartTime,
+    bestInfinityTime: bestInfinityTime === Infinity ? -1 : bestInfinityTime,
+    bestIPM: saveBN(bestIPM),
+    iUpg1Bought, iUpg2Bought, iUpg3Bought, iUpg4Bought,
+    iUpg5Bought, iUpg6Bought, iUpg7Bought, iUpg8Bought,
+    iUpg9Bought, iUpg10Bought, iUpg11Bought, iUpg12Bought,
+    iUpg13Bought, iUpg14Bought, iUpg15Bought, iUpg16Bought,
+    ipMultLevel, autoInfinityEnabled,
+    autoInfinityLevel, breakInfinityUnlocked, biUpg1Bought,
+    totalIPEarned: saveBN(totalIPEarned)
+  };
+}
+
+function loadBN(v) {
+  if (v && typeof v === 'object' && 'm' in v && 'e' in v) return B(v.m, v.e);
+  if (typeof v === 'number') return Bn(v);
+  return Bn(0);
+}
+
+function applySave(s) {
+  if (!s || ![1,2,3,4,5,6,7,8,9].includes(s.v)) return false;
+  points = loadBN(s.points);
+  multiplier = loadBN(s.multiplier);
+  if (multiplier.m === 0) multiplier = Bn(1);
+  bought = s.bought || 0;
+  gameSpeed = s.gameSpeed || 1;
+  prestigeUnlocked = !!s.prestigeUnlocked;
+  playStartTime = s.playStartTime || Date.now();
+  prestigePoints = loadBN(s.prestigePoints);
+  totalPrestigePoints = loadBN(s.totalPrestigePoints);
+  hasPrestiged = !!s.hasPrestiged;
+  prestigeBoxEverShown = !!s.prestigeBoxEverShown;
+  pUpg1Bought = !!s.pUpg1Bought;
+  pUpg2Bought = !!s.pUpg2Bought;
+  pUpg3Bought = !!s.pUpg3Bought;
+  runStartTime = s.runStartTime || Date.now();
+  runTotalPoints = loadBN(s.runTotalPoints);
+  bestPPM = loadBN(s.bestPPM);
+  challengeCompleted = Array.isArray(s.challengeCompleted) ? s.challengeCompleted.slice() : [false,false,false,false];
+  inChallenge = s.inChallenge != null ? s.inChallenge : -1;
+  selectedChallenge = s.selectedChallenge != null ? s.selectedChallenge : -1;
+  confirmPrestige = s.confirmPrestige !== false;
+  autobuyLevel = s.autobuyLevel || 0;
+  autobuyEnabled = s.autobuyEnabled !== false;
+  autoMultiBuyLevel = s.autoMultiBuyLevel || 0;
+  prestigeCount = s.prestigeCount || 0;
+  pUpg4Bought = !!s.pUpg4Bought;
+  pUpg5Bought = !!s.pUpg5Bought;
+  pUpg6Bought = !!s.pUpg6Bought;
+  autoPrestigeEnabled = !!s.autoPrestigeEnabled;
+  infinityPoints = loadBN(s.infinityPoints);
+  hasInfinitied = !!s.hasInfinitied;
+  infinityResets = s.infinityResets || 0;
+  infinityStartTime = s.infinityStartTime || Date.now();
+  bestInfinityTime = (s.bestInfinityTime != null && s.bestInfinityTime >= 0) ? s.bestInfinityTime : Infinity;
+  bestIPM = loadBN(s.bestIPM);
+  iUpg1Bought = !!s.iUpg1Bought;
+  iUpg2Bought = !!s.iUpg2Bought;
+  iUpg3Bought = !!s.iUpg3Bought;
+  iUpg4Bought = !!s.iUpg4Bought;
+  iUpg5Bought = !!s.iUpg5Bought;
+  iUpg6Bought = !!s.iUpg6Bought;
+  iUpg7Bought = !!s.iUpg7Bought;
+  iUpg8Bought = !!s.iUpg8Bought;
+  iUpg9Bought = !!s.iUpg9Bought;
+  iUpg10Bought = !!s.iUpg10Bought;
+  iUpg11Bought = !!s.iUpg11Bought;
+  iUpg12Bought = !!s.iUpg12Bought;
+  iUpg13Bought = !!s.iUpg13Bought;
+  iUpg14Bought = !!s.iUpg14Bought;
+  iUpg15Bought = !!s.iUpg15Bought;
+  iUpg16Bought = !!s.iUpg16Bought;
+  ipMultLevel = s.ipMultLevel || 0;
+  autoInfinityEnabled = !!s.autoInfinityEnabled;
+  autoInfinityLevel = s.autoInfinityLevel || 0;
+  breakInfinityUnlocked = !!s.breakInfinityUnlocked;
+  biUpg1Bought = !!s.biUpg1Bought;
+  totalIPEarned = loadBN(s.totalIPEarned);
+  // sync UI toggles
+  confirmToggle.classList.toggle('on', confirmPrestige);
+  renderChallengeUI();
+  render();
+  return true;
+}
+
+function saveGame() {
+  try {
+    const obj = getSaveObj();
+    const json = JSON.stringify(obj);
+    if (!json || json === 'undefined') { flashSaveMsg('Save failed: empty data', '#f44'); return false; }
+    localStorage.setItem('idleSave', json);
+    return true;
+  } catch(e) { flashSaveMsg('Save failed: ' + e.message, '#f44'); return false; }
+}
+
+function loadGame() {
+  try {
+    const raw = localStorage.getItem('idleSave');
+    if (!raw) return false;
+    return applySave(JSON.parse(raw));
+  } catch(e) { return false; }
+}
+
+// buttons
+document.getElementById('saveBtn').addEventListener('click', () => {
+  if (saveGame()) flashSaveMsg('Game saved.');
+  else flashSaveMsg('Save failed.', '#c06060');
+});
+
+document.getElementById('loadBtn').addEventListener('click', () => {
+  if (loadGame()) flashSaveMsg('Game loaded.');
+  else flashSaveMsg('No save found.', '#c06060');
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const saveText = document.getElementById('saveText');
+  const encoded = btoa(JSON.stringify(getSaveObj()));
+  saveText.value = encoded;
+  saveText.style.display = '';
+  saveText.select();
+  flashSaveMsg('Save exported. Copy the text.');
+});
+
+document.getElementById('importBtn').addEventListener('click', () => {
+  const saveText = document.getElementById('saveText');
+  saveText.style.display = '';
+  const raw = saveText.value.trim();
+  if (!raw) { flashSaveMsg('Paste save text first.', '#c06060'); return; }
+  try {
+    const s = JSON.parse(atob(raw));
+    if (applySave(s)) {
+      saveGame();
+      flashSaveMsg('Save imported.');
+      saveText.style.display = 'none';
+      saveText.value = '';
+    } else {
+      flashSaveMsg('Invalid save data.', '#c06060');
+    }
+  } catch(e) {
+    flashSaveMsg('Invalid save text.', '#c06060');
+  }
+});
+
+// autosave every 10 seconds
+setInterval(() => { saveGame(); }, 10000);
+
+// load on startup
+loadGame();
+
+render();
+</script>
+</body>
+</html>
